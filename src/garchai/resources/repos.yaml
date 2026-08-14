@@ -1,0 +1,234 @@
+# garchai repository registry — Phase 0
+# Schema per master blueprint §42. last_checked: 2026-08-14
+#
+# LICENSE POLICY (master blueprint §63): repositories without a license file are
+# used for BEHAVIOURAL COMPARISON, HYPER-PARAMETER CONFIRMATION and NUMERICAL
+# VALIDATION only. No code is ported from them. Every model in `garchai` is
+# implemented independently from the published equations.
+
+held_locally:
+
+  - repo_id: vbayes_rech
+    url: https://github.com/VBayesLab/RECH
+    status: OFFICIAL
+    paper_id: nguyen2022_rech
+    language: [MATLAB]
+    license: NONE_FOUND
+    license_checked: true
+    local_archive: RECH-main.zip
+    completeness: COMPLETE
+    contents:
+      - "SP500_analysis.m — driver"
+      - "RECH (LSTM_tGARCH).7z -> SMC_for_GARCH/, SMC_for_LSTM_tGARCH/"
+      - "Does anything beat LSTM-tGARCH_/ -> largecap, midcap, stock index panels"
+      - "Data/individual_stock_data.mat, Data/realized_data.mat"
+      - "Results_tGARCH_SMC_SP500.mat, Results_RECH_SMC_SP500.mat"
+    value: HIGH
+    use: "Numerical validation target for RECH. The .mat result files give us
+          published-run numbers to check our PyTorch implementation against."
+    notes: "Nested .7z and three inner .zip files required separate extraction."
+
+  - repo_id: vbayes_realrech
+    url: https://github.com/VBayesLab/RealRECH
+    status: OFFICIAL
+    paper_id: liu2023_realrech
+    language: [MATLAB]
+    license: NONE_FOUND
+    license_checked: true
+    local_archive: RealRECH-main.zip
+    completeness: INCOMPLETE
+    contents: ["SMC_for_RECH/ (RNN-tGARCH only)", "Results_RECH_SMC_SP500.mat"]
+    missing: ["DeepRGARCH recurrent component", "measurement equation",
+              "SMC_for_RealRECH", "the promised Python version"]
+    value: LOW_FOR_ITS_PAPER
+    use: "Useful only as a second SMC reference. Does NOT implement the paper it
+          is named after."
+    action_required: "Re-check upstream; see docs/03_MISSING_RESOURCES.md A1."
+
+  - repo_id: roudane_hybridecon
+    url: https://github.com/merwanroudane/hybridecon
+    status: AUTHORS_OWN_PACKAGE
+    language: [Python]
+    license: MIT
+    license_holder: "Dr Merwan Roudane <merwanroudane920@gmail.com>"
+    license_checked: true
+    local_path: "C:/Users/HP/Documents/xtpmg/hybridaieco/hybridecon"
+    installed: true          # importable as `hybridecon`
+    value: VERY_HIGH
+    reuse_rights: FULL       # author's own MIT code — adaptation permitted
+    modules: [data, diagnostics, econometric, deep, hybrids, regime, evaluate, viz]
+    provides:
+      econometric: [GARCH, GARCHMIDAS, HAR, ARIMAWrapper, ARFIMAWrapper,
+                    VARWrapper, DiagonalBEKK, GAS]
+      hybrids_feature_based: [GARCHLSTM, GARCHGRU, GARCHBiLSTM, GARCHCNNBiLSTM,
+                              GARCHAttentionLSTM, ARIMALSTM, ARFIMALSTM, MIDASLSTM,
+                              MIDASCNNBiLSTMAttention, HARLSTMGARCH, KANGARCHMIDAS,
+                              GASATTLSTM, DeepBEKK, DeepVAR, DeepTVAR,
+                              DeepQuantileVaR, RegimeAwareLSTMGARCH]
+      evaluation: [rmse, mae, mape, smape, qlike, medae, model_confidence_set,
+                   var_backtest_table, expected_shortfall, trading_metrics]
+      viz: [plot_series, plot_returns_and_volatility, plot_acf_pacf, plot_qq,
+            residual_diagnostic_panel, plot_forecast, plot_volatility_decomposition,
+            plot_regime_ribbon, plot_training_curve, plot_mcs_heatmap,
+            plot_correlation_surface, table, metrics_table]
+    use: |
+      Sibling package by the same author. Two consequences for garchai:
+
+      (1) DO NOT DUPLICATE. hybridecon already owns the FEATURE-hybrid family
+          (GARCH -> sigma/z features -> LSTM/GRU/BiLSTM/CNN/attention) plus
+          HAR-LSTM-GARCH, KAN-GARCH-MIDAS, GAS-ATT-LSTM, DeepBEKK and the regime
+          hybrids. garchai reaches these through `adapters/hybridecon_adapter.py`
+          and keeps its own identity on the STRUCTURAL / EMBEDDED / INFORMED /
+          BAYESIAN families that hybridecon does not cover.
+
+      (2) NAMING. hybridecon.hybrids.GARCHLSTM is feature-based. garchai must
+          therefore never export a bare `GARCHLSTM`; it uses
+          StructuralGARCHLSTM (Zhao), EmbeddedGARCHLSTM (Wei),
+          GARCHInformedLSTM (Xu) and FeatureGARCHLSTM (Kim & Won, adapter-backed).
+          This is blueprint §39, and it is now a hard constraint rather than advice.
+
+      Reuse is legally unrestricted (MIT, author's own). `evaluate.model_confidence_set`,
+      the VaR backtest table and the viz/table helpers are adapted rather than
+      rewritten; the econometric estimators are re-implemented in torch because
+      garchai needs autograd and float64 throughout.
+
+  - repo_id: roudane_harlstmgarch
+    url: https://pypi.org/project/harlstmgarch/
+    status: AUTHORS_OWN_PACKAGE
+    language: [Python]
+    license: MIT
+    local_path: "C:/Users/HP/Documents/xtpmg/HAR_LSTM_GARCH/harlstmgarch"
+    companion_paper: "C:/Users/HP/Documents/xtpmg/HAR_LSTM_GARCH/jrfm-19-00077.pdf"
+    value: MEDIUM
+    reuse_rights: FULL
+    use: "HAR -> residual LSTM -> GARCH uncertainty. Covers the residual-hybrid
+          slot; garchai benchmarks against it rather than rebuilding it."
+
+  - repo_id: tsmodels_tsgarch
+    url: https://github.com/tsmodels/tsgarch
+    status: PACKAGE_SOURCE
+    language: [R, C++, TMB]
+    license: "CRAN (see DESCRIPTION)"
+    local_archive: tsgarch-main.zip
+    value: HIGH
+    use: "PRIMARY classical-GARCH reference, as confirmed by the author.
+          Cross-language reference for variance filters (src/filters.cpp),
+          likelihood (R/likelihood.R), initialization/backcast (R/initialization.R),
+          persistence (R/persistance.R), unconditional variance (R/unconditional.R),
+          constraints (R/constraints.R), news impact (R/newsimpact.R), and
+          VaR backtesting (R/backtest.R). Read for correctness; not ported."
+
+  - repo_id: garchnet_replication
+    url: https://github.com/e-rrrr-or-404/garchnet-replication
+    status: COMMUNITY_REPLICATION
+    paper_id: buczynski2023_garchnet
+    language: [Python]
+    license: NONE_FOUND
+    license_checked: true
+    local_archive: garchnet-replication-main.zip
+    value: MEDIUM_HIGH
+    use: "Hyper-parameter confirmation and skewed-t parameterisation cross-check.
+          Best-organised community repo in the set (has STATUS.md and tests)."
+
+  - repo_id: datafox_glove
+    url: https://github.com/datafox-tw/GLoVE
+    status: COMMUNITY
+    paper_id: xu2024_ginn
+    language: [Python]
+    license: NONE_FOUND
+    license_checked: true
+    local_archive: GLoVE-main.zip
+    value: MEDIUM
+    use: "GINN-inspired, not official. Consult reproduction.md for the informed-loss
+          weighting experiments and the LSTM/TFT/TSMixer comparison setup."
+
+  - repo_id: lbacco_garch_tft
+    url: https://github.com/lbacco/garch-tft
+    status: PAPER_LINKED
+    paper_id: petrosino2025_garch_tft
+    language: [Python]
+    license: NONE_FOUND
+    license_checked: true
+    local_archive: garch-tft-main.zip
+    completeness: PARTIAL
+    contents: ["GARCH/fittinggarch.py", "GARCH/GARCHCSVs.py", "MODELS/anngarch.py",
+               "MODELS/lstm_garch.py", "MODELS/save_hyperparameters.py", "TFTS/script_*"]
+    value: MEDIUM
+    use: "README states full release was deferred to post-acceptance (paper accepted
+          2025-07). Present files still show the GARCH feature pipeline and the TFT
+          training scripts."
+
+  - repo_id: vitorpia_garch_lstm
+    url: https://github.com/vitorpia/GARCH-LSTM
+    status: INDEPENDENT_RELATED
+    paper_id: kim2018_feature_garch_lstm
+    language: [Python]
+    license: MIT
+    license_checked: true
+    local_archive: GARCH-LSTM-main.zip
+    value: MEDIUM
+    use: "GARCH/EGARCH/GJR/APARCH -> LSTM on USD/BRL realized volatility (21-day
+          rolling sd), Yahoo Finance 2010-2025. Modern reference for the feature
+          hybrid; MIT-licensed, so adaptation would be permissible if useful."
+
+  - repo_id: yangkedc_lstm_garch
+    url: https://github.com/yangkedc1984/LSTM_GARCH-1
+    status: COMMUNITY_REPLICATION
+    paper_id: kim2018_feature_garch_lstm
+    language: [Python]
+    license: MIT
+    license_checked: true
+    local_archive: LSTM_GARCH-1-master.zip
+    value: LOW
+    use: "Fork of tlemenestrel/LSTM_GARCH. Single notebook, PyFlux + Keras.
+          Historical interest; PyFlux is unmaintained."
+
+  - repo_id: stuid_neural_garch
+    url: https://github.com/stuid-maker/neural-garch
+    status: INDEPENDENT_RELATED
+    paper_id: null            # deliberately not linked to yin2022_neural_garch
+    language: [Python]
+    license: NONE_FOUND
+    license_checked: true
+    local_archive: neural-garch-main.zip
+    value: LOW
+    use: "WARNING: despite the name, this is NOT an implementation of Yin & Barucca.
+          It fits a generic sigma^2_t = f_theta(r^2_{t-1}, sigma^2_{t-1}) network with
+          no variational inference, no time-varying parameter distribution and no
+          BEKK. Documentation is in Chinese. Do not use as a NeuralGARCH reference."
+
+# ---------------------------------------------------------------------------
+referenced_not_downloaded:
+  # All COMMUNITY / INDEPENDENT_RELATED; none on the critical path.
+  - {url: "https://github.com/yeasinstat/GarchInformedLSTM", topic: GINN, priority: medium}
+  - {url: "https://github.com/jhihan/GARCH_Neural_Network", topic: amortized_estimation, priority: low}
+  - {url: "https://github.com/duffau/RNN_GARCH", topic: recurrent_garch, priority: low}
+  - {url: "https://github.com/czb9829/GARCH-MIDAS", topic: garch_midas, priority: medium}
+  - {url: "https://github.com/aryanbhambu/GaMM", topic: garch_mlpmixer, priority: low}
+  - {url: "https://github.com/tnechaev/garch-filtered-volatility-forecasting-ml", topic: garch_xgboost, priority: low}
+  - {url: "https://github.com/LucasTrenzado/Predicting_Volatility_GARCH_vs_XGBoost", topic: garch_xgboost, priority: low}
+  - {url: "https://github.com/sgrillin/dcc_garch", topic: dcc, priority: low}
+  - {url: "https://github.com/Pkargados/dcc-garch-python", topic: dcc, priority: low}
+  - {url: "https://github.com/ImlyChlung/GARCH-LSTM", topic: feature_hybrid, priority: low}
+  - {url: "https://github.com/richardbarlian/garch-lstm-volatility", topic: feature_hybrid, priority: low}
+  - {url: "https://github.com/Marwa-tk/volatility-forecasting-garch-lstm", topic: feature_hybrid, priority: low}
+  - {url: "https://github.com/valto27/vol-forecasting-GARCH-LSTM", topic: feature_hybrid, priority: low}
+  - {url: "https://github.com/yufanzhao1010/hybrid-garch-tft-volatility", topic: garch_tft, priority: low}
+  - {url: "https://github.com/QwenchC/QuantTrade", topic: rl, priority: low}
+
+# ---------------------------------------------------------------------------
+external_packages:
+  # Blueprint §53: do NOT rebuild these as core novelty. Adapt or benchmark.
+  - {name: arch, url: "https://github.com/bashtage/arch", role: PRIMARY_BASELINE,
+     installed: "8.0.0", use: "classical univariate GARCH estimation + ArchAdapter"}
+  - {name: mvgarch, url: "https://github.com/jack-tobin/mvgarch", role: MULTIVARIATE_BASELINE,
+     installed: false}
+  - {name: hybridecon, url: "https://github.com/merwanroudane/hybridecon", role: SIBLING_PACKAGE,
+     installed: false,
+     note: "Author's own package. Its GARCHLSTM is FEATURE-based; garchai must not
+            collide with it namewise — hence FeatureGARCHLSTM / StructuralGARCHLSTM /
+            EmbeddedGARCHLSTM / GARCHInformedLSTM (blueprint §39)."}
+  - {name: harlstmgarch, role: EXTERNAL_BENCHMARK, installed: false}
+  - {name: volatility-gamm, url: "https://github.com/aryanbhambu/GaMM", role: EXTERNAL_BENCHMARK}
+  - {name: rugarch, role: R_REFERENCE}
+  - {name: rmgarch, role: R_REFERENCE, use: "benchmark for NeuralDCC / NeuralBEKK"}

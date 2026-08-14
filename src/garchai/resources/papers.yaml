@@ -1,0 +1,569 @@
+# garchai paper registry — Phase 0
+# Schema per master blueprint §41. `local_pdf` is relative to the GARCH AI folder.
+# code_status enum (§14): OFFICIAL | AUTHOR_LINKED | PAPER_LINKED | PACKAGE_SOURCE
+#                         COMMUNITY_REPLICATION | INDEPENDENT_RELATED
+#                         NO_PUBLIC_CODE_IDENTIFIED | UNKNOWN
+# last_checked: 2026-08-14
+
+papers:
+
+  # ------------------------------------------------------------------ Tier S
+  - paper_id: zhao2024_garch_nn
+    title: From GARCH to Neural Network for Volatility Forecast
+    authors: [Pengfei Zhao, Haoren Zhu, Wilfred Siu Hung Ng, Dik Lun Lee]
+    year: 2024
+    venue: AAAI 2024
+    paper_url: https://arxiv.org/abs/2402.06642
+    alt_url: https://ojs.aaai.org/index.php/AAAI/article/view/29643
+    local_pdf: 2402.06642v1.pdf
+    integration_type: structural
+    models: [GARCHNN, StructuralGARCHLSTM, GARCHNNKernel, GJRNNKernel, FIGARCHNNKernel]
+    key_equations: "Eq.1 GARCH; Eq.3 FI-GARCH expansion; Eq.5 N-loss; Eq.6 T-loss; Eq.7 GARCH-LSTM"
+    data: {source: Yahoo Finance, series: [S&P 500, DJI, NASDAQ, EUR-USD, Gold],
+           n: ~2514, split: "8:1:1", scale: 100,
+           target: "sigma_t = sqrt(sum_{i=0}^{k-1} eps^2_{t-i}), k=5, not demeaned"}
+    protocol: {optimizer: Adam, lr: 1e-2, lr_schedule: "halve on plateau",
+               early_stopping: 20, horizons: [1, 3, 5, 10, 21], kernel: GJR-GARCH,
+               metrics: [MAE, MSE], runs: 10, risk: "5% 1-day VaR = 1.65*sigma"}
+    reproducible_exhibits: [Table 2, Table 3, Table 4, Table 5, Figure 2]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: very_high
+    build_decision: IMPLEMENT
+
+  - paper_id: wei2025_garch_rnn
+    title: Unified GARCH-Recurrent Neural Networks in Financial Volatility Forecasting
+    authors: [Jingyi Wei, Steve Yang, Zhenyu Cui]
+    year: 2025
+    version: "v2, 21 Nov 2025"
+    paper_url: https://arxiv.org/abs/2504.09380
+    local_pdf: 2504.09380v2.pdf
+    integration_type: structural_embedded
+    models: [EmbeddedGARCHGRU, EmbeddedGARCHLSTM, EmbeddedGARCHGRUCell, EmbeddedGARCHLSTMCell]
+    key_equations: "Eqs.15-20 GARCH-GRU; Eq.21 inverse-tanh form; Eqs.22-29 GARCH-LSTM"
+    data: {source: Yahoo Finance, series: [S&P 500, DJI, NASDAQ],
+           range: "2010-01-01..2020-12-31", n: 2658,
+           target: "sigma_t = sqrt((1/k) sum_{i=1}^{k}(r_{t-i}-mu_k)^2), k=5, demeaned, lagged",
+           split: "pre-2019 dev (last 20% val); test 2019; stress test 2020"}
+    protocol: {window: 22, horizons: [1, 3, 7], optimizer: Adam, tuning: Optuna,
+               early_stopping: 20, lr_schedule: "halve on plateau", runs: 20,
+               metrics: [MSE, MAE, SMAPE, OOS_R2],
+               risk: "99% VaR, violation ratio, pinball loss"}
+    reproducible_exhibits: [Table 2, Table 3, COVID stress tables, VaR tables]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: very_high
+    build_decision: IMPLEMENT
+    deviations_to_record:
+      - "Eq.19 swaps the standard GRU update-gate convention relative to the paper's own Eq.13"
+
+  - paper_id: yin2022_neural_garch
+    title: Neural Generalised AutoRegressive Conditional Heteroskedasticity
+    authors: [Zexuan Yin, Paolo Barucca]
+    year: 2022
+    paper_url: https://arxiv.org/abs/2202.11285
+    local_pdf: 2202.11285v1.pdf
+    integration_type: dynamic_parameters_bayesian
+    models: [NeuralGARCH, NeuralBEKK]
+    design_note: |
+      Student-t is a config option on NeuralGARCH (nu_t joins the latent
+      coefficient vector), not a separate NeuralStudentTGARCH class.
+    key_equations: "Eq.10 time-varying GARCH; Eq.11/13 diagonal BEKK; Eqs.16-17 generative;
+                    Eqs.19-20 inference; Eq.21 ELBO"
+    architecture: {rnn: GRU, hidden: 64, mlps: "3-layer, 64 units, ReLU",
+                   positivity: sigmoid, dof: "estimate nu' = nu - 2"}
+    data: {series: [20 FX pairs, Brent, silver, gold, DAX, S&P, NASDAQ, FTSE100, Dow Jones],
+           range: "2011/2013 .. 2021-08-05", split: "80/10/10"}
+    protocol: {objective: ELBO, inference: SGVB, evaluation: "test log-likelihood",
+               benchmarks: [GARCH-N, GARCH-t, EGARCH-N, EGARCH-t]}
+    reproducible_exhibits: [Table 2, Table 3, Table 4, Table 5]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    related_repo: https://github.com/stuid-maker/neural-garch   # NOT faithful
+    priority: very_high
+    build_decision: IMPLEMENT
+    deviations_to_record:
+      - "Eq.4 Student-t log-likelihood prints +logGamma(nu/2); correct sign is negative"
+
+  - paper_id: nguyen2022_rech
+    title: Recurrent Conditional Heteroskedasticity
+    authors: [T.-N. Nguyen, M.-N. Tran, R. Kohn]
+    year: 2022
+    venue: "Journal of Applied Econometrics 37(5), 1031-1054"
+    paper_url: https://arxiv.org/abs/2010.13061
+    local_pdf: 2010.13061v2.pdf
+    official_repo: https://github.com/VBayesLab/RECH
+    code_status: OFFICIAL
+    code_language: [MATLAB]
+    code_local: RECH-main.zip
+    integration_type: structural_additive_recurrent
+    models: [RECH, SRNGARCH, SRNGJR, LSTMtGARCH]
+    key_equations: "Eqs.7a-7d general RECH; Eqs.8a-8d SRN-GARCH; Theorem 1 bounded variance"
+    spec: {recurrent_input: "x_t = (omega_{t-1}, y_{t-1}, sigma^2_{t-1})",
+           activation: "bounded ReLU", hidden: scalar,
+           constraints: "beta0,beta1 >= 0; alpha,beta >= 0; alpha+beta < 1",
+           init: "sigma^2_1 = sigma^2_0", errors: "N(0,1) in paper"}
+    priority: very_high
+    build_decision: IMPLEMENT_AND_VALIDATE
+    paper_code_discrepancy:
+      note: "Authors state the JAE paper implements RNN-GARCH; the shipped code implements
+             LSTM-tGARCH with Student-t errors and SMC inference."
+      resolution: 'expose implementation="paper" and implementation="official_code"'
+
+  - paper_id: liu2023_realrech
+    title: Deep Learning Enhanced Realized GARCH
+    authors: [Chen Liu, Chao Wang, Minh-Ngoc Tran, Robert Kohn]
+    year: 2023
+    paper_url: https://arxiv.org/abs/2302.08002
+    local_pdf: 2302.08002v2.pdf
+    official_repo: https://github.com/VBayesLab/RealRECH
+    code_status: OFFICIAL
+    code_language: [MATLAB]
+    code_local: RealRECH-main.zip
+    code_completeness: INCOMPLETE   # only SMC_for_RECH present; no DeepRGARCH
+    integration_type: realized_bayesian
+    models: [DeepRGARCH, RealizedGARCH]
+    design_note: |
+      RealRECH is exported as an alias of DeepRGARCH (the paper uses both
+      names). RealizedGARCH (Hansen, Huang & Shek 2012) ships alongside as
+      the baseline the paper measures against; beta_1 = 0 makes DeepRGARCH
+      reproduce it exactly.
+    key_equations: "Eqs.6a-6e DeepRGARCH(p,q); Eqs.7a-7f DeepRGARCH(1,1);
+                    Eq.8 log-likelihood; Eqs.9-11 SMC; Eqs.12-13 data prep"
+    spec: {lstm_input: "x_t = (omega_{t-1}, y_{t-1}, sigma^2_{t-1}, rv_{t-1})",
+           g: ReLU, measurement: "rv_t = xi + phi*sigma^2_t + tau1*eps + tau2*(eps^2-1) + u_t",
+           errors: "eps ~ N(0,1), u ~ N(0, sigma_u)",
+           priors: "N(0,0.1) on LSTM parameters",
+           inference: "SMC: likelihood annealing in-sample, data annealing rolling"}
+    data: {source: Oxford-Man Institute Realized Library, n_indices: 31,
+           measure: "5-min realized variance, scaled by c = sum y^2 / sum rv",
+           returns: "100 * demeaned log return",
+           range: "2004-01-01 .. 2022-01-01", split: "first half / second half"}
+    priority: very_high
+    build_decision: IMPLEMENT
+    blockers: [missing_official_code, oxford_man_library_discontinued]
+
+  - paper_id: rodikov2022_sigma_lstm
+    title: Volatility-inspired sigma-LSTM cell
+    authors: [German Rodikov, Nino Antulov-Fantulin]
+    year: 2022
+    paper_url: https://arxiv.org/abs/2205.07022
+    local_pdf: 2205.07022v1.pdf
+    integration_type: structural_cell
+    models: [SigmaLSTM]
+    design_note: |
+      The cell and the model are one class: SigmaLSTM owns both the gate
+      equations (4-9) and the filter, since the paper's cell is not reused
+      independently of it. Its three unstated points are resolved against
+      the 2023 sigma-Cell paper; see the module docstring.
+    key_equations: "Eqs.4-9 cell; Eq.10 return output; Eq.11 variance readout; Eq.12 likelihood"
+    data: {series: [S&P 500, Apple, Bitcoin-USD], rv: "minute-based, daily aggregation",
+           preprocessing: "min-max 0..1", val: 200, test: 200}
+    reproducible_exhibits: [Table III]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: high
+    build_decision: IMPLEMENT
+    open_questions:
+      - "Eq.8 o_t = N(0, W_o[C_t^2]): variance or std? reparameterisation unspecified"
+      - "Eq.11 mean operator <C_t> unglossed"
+      - "Eq.12 written as a loss but is 2x the Gaussian log-likelihood kernel (to maximise)"
+    resolution_route: "deep-read rodikov2023_sigma_cell before implementing"
+
+  - paper_id: rodikov2023_sigma_cell
+    title: "Introducing the sigma-Cell: Unifying GARCH, Stochastic Fluctuations and
+            Evolving Mechanisms in RNN-based Volatility Forecasting"
+    authors: [German Rodikov, Nino Antulov-Fantulin]
+    year: 2023
+    paper_url: https://arxiv.org/abs/2309.01565
+    local_pdf: 2309.01565v1.pdf
+    integration_type: structural_cell_stochastic
+    models: [SigmaCell, SigmaCellN, SigmaCellRL, SigmaCellNTV, SigmaCellRLTV]
+    design_note: |
+      All five variants of Eqs. 13-38 are built. 'SigmaRNN' in the original
+      blueprint was a placeholder name; the paper's own names are used.
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: high
+    build_decision: IMPLEMENT
+    read_status: identified   # deep read scheduled at Phase 4
+
+  - paper_id: buczynski2023_garchnet
+    title: "GARCHNet: Value-at-Risk Forecasting with GARCH Models Based on Neural Networks"
+    authors: [Mateusz Buczynski, Marcin Chlebus]
+    year: 2023
+    venue: Computational Economics
+    doi: 10.1007/s10614-023-10390-7
+    paper_url: https://link.springer.com/article/10.1007/s10614-023-10390-7
+    local_pdf: s10614-023-10390-7.pdf
+    integration_type: structural_var
+    models: [GARCHNet]
+    design_note: |
+      The paper's 'GARCHNetDistribution' is not a separate class: the
+      time-varying eta_t and lambda_t are extra heads on GARCHNet itself
+      (Eqs. 20-21), which is what the paper actually describes.
+    distributions: [normal, student-t, skewed-t]
+    code_status: COMMUNITY_REPLICATION
+    community_repo: https://github.com/e-rrrr-or-404/garchnet-replication
+    code_local: garchnet-replication-main.zip
+    note: "Official code available from corresponding author only."
+    priority: high
+    build_decision: REPRODUCE
+
+  - paper_id: xu2024_ginn
+    title: GARCH-Informed Neural Networks for Volatility Prediction in Financial Markets
+    authors: [Zeda Xu, John Liechty, Sebastian Benthall, Nicholas Skar-Gislinge, Christopher McComb]
+    year: 2024
+    paper_url: https://arxiv.org/abs/2410.00288
+    local_pdf: 2410.00288v1.pdf
+    integration_type: informed_loss
+    models: [GINN, GINN0, GARCHInformedNetwork, GINNDataset]
+    design_note: |
+      The informed objective is a function, garchai.losses.garch_informed_loss
+      (Eq. 17), not a class - it composes with any architecture, which is the
+      separation the paper's own discussion recommends. GARCHInformedLSTM is
+      therefore GINN itself.
+    key_equations: "Eqs.13-16 workflow; Eq.17 informed loss; Eq.18 GINN-0"
+    spec: {loss: "lambda*MSE(sigma^2_t, ginn) + (1-lambda)*MSE(garch, ginn)",
+           lambda_star: 0.01, mean_model: "AR over 90-day window",
+           truth: "sigma^2_t = (r_t - mu_hat_t)^2",
+           net: "3 LSTM layers x 256 + dropout, 2 linear, BatchNorm, ReLU",
+           optimizer: AdamW, epochs: 300, window: 90}
+    data: {source: Yahoo Finance, series: [GSPC, DJIA, NYA, RUT, HSI, NIK, FTSE],
+           range: "1992-06-01 .. 2022-05-31", split: "70/30 at 2013-06-01",
+           lambda_study_series: IXIC}
+    reproducible_exhibits: [Table I, lambda parametric study]
+    code_status: COMMUNITY
+    community_repos:
+      - https://github.com/yeasinstat/GarchInformedLSTM   # not downloaded
+      - https://github.com/datafox-tw/GLoVE               # local: GLoVE-main.zip
+    priority: high
+    build_decision: REPRODUCE
+
+  # ------------------------------------------- Tier A/B — benchmarks & extensions
+  - paper_id: kim2018_feature_garch_lstm
+    covered_by: "hybridecon.hybrids.GARCHLSTM (feature-based)"
+    build_route: ADAPTER   # do not rebuild; reach via garchai.adapters
+    title: "Forecasting the volatility of stock price index: A hybrid model integrating
+            LSTM with multiple GARCH-type models"
+    authors: [Ha Young Kim, Chang Hyun Won]
+    year: 2018
+    venue: "Expert Systems with Applications 103, 25-37"
+    local_pdf: kim2018.pdf
+    integration_type: feature_hybrid
+    models: [FeatureGARCHLSTM]
+    code_status: COMMUNITY_REPLICATION
+    community_repos:
+      - https://github.com/yangkedc1984/LSTM_GARCH-1   # local: LSTM_GARCH-1-master.zip
+      - https://github.com/vitorpia/GARCH-LSTM         # local: GARCH-LSTM-main.zip
+    priority: medium
+    build_decision: REPRODUCE
+    role: BASELINE
+
+  - paper_id: hu2020_lstm_ann_garch
+    title: "A hybrid deep learning approach by integrating LSTM-ANN networks with GARCH
+            model for copper price volatility prediction"
+    authors: [Yan Hu, Jian Ni, Liu Wen]
+    year: 2020
+    venue: "Physica A 557, 124907"
+    doi: 10.1016/j.physa.2020.124907
+    local_pdf: hu2020.pdf
+    integration_type: feature_hybrid
+    models: [LSTMANNGARCH]
+    design_note: |
+      bidirectional=True gives the paper's BLSTM-ANN variant.
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: medium
+    build_decision: REPRODUCE
+
+  - paper_id: michankow2023_dl_garch
+    covered_by: "hybridecon.hybrids.GARCHGRU / GARCHLSTM"
+    build_route: ADAPTER   # do not rebuild; reach via garchai.adapters
+    title: Combining Deep Learning and GARCH Models for Financial Volatility and Risk Forecasting
+    authors: [Jakub Michankow, Lukasz Kwiatkowski, Janusz Morajda]
+    year: 2023
+    paper_url: https://arxiv.org/abs/2310.01063
+    local_pdf: 2310.01063v1.pdf
+    integration_type: feature_hybrid
+    models: [DLGARCH, FeatureGARCHGRU]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: medium
+    build_decision: REPRODUCE
+
+  - paper_id: ersin2023_garch_midas_lstm
+    covered_by: "hybridecon.hybrids.MIDASLSTM + econometric.GARCHMIDAS"
+    build_route: ADAPTER   # do not rebuild; reach via garchai.adapters
+    title: "Financial Volatility Modeling with the GARCH-MIDAS-LSTM Approach"
+    authors: [Ozgur Omer Ersin, Melike Bildirici]
+    year: 2023
+    venue: "Mathematics 11, 1785"
+    doi: 10.3390/math11081785
+    local_pdf: mathematics-11-01785-v2.pdf
+    integration_type: mixed_frequency_hybrid
+    models: [GARCHMIDASLSTM]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    related_repo: https://github.com/czb9829/GARCH-MIDAS
+    priority: medium
+    build_decision: REPRODUCE
+
+  - paper_id: petrosino2025_garch_tft
+    title: "A GARCH-temporal fusion transformer model for the volatility prediction of
+            exchange traded funds"
+    authors: [Lorenzo Petrosino, Luca Bacco, Giuliano Salvati, Mario Merone, Marco Papi]
+    year: 2025
+    venue: Neural Computing and Applications
+    doi: 10.1007/s00521-025-11468-z
+    local_pdf: s00521-025-11468-z.pdf
+    integration_type: transformer_hybrid
+    models: [GARCHTFT]
+    code_status: PAPER_LINKED
+    official_repo: https://github.com/lbacco/garch-tft
+    code_local: garch-tft-main.zip
+    code_completeness: PARTIAL
+    priority: medium
+    build_decision: REPRODUCE
+
+  - paper_id: fatima2022_dcc_mann
+    title: "On the forecasting of multivariate financial time series using hybridization
+            of DCC-GARCH model and multivariate ANNs"
+    authors: [Samreen Fatima, Mudassir Uddin]
+    year: 2022
+    venue: Neural Computing and Applications
+    doi: 10.1007/s00521-022-07631-5
+    local_pdf: s00521-022-07631-5.pdf
+    integration_type: multivariate_hybrid
+    models: [DCCGARCHMANN]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: medium
+    build_decision: REPRODUCE
+
+  - paper_id: maingo2025_statistical_ml_fusion
+    title: A Fusion of Statistical and Machine Learning Models for Volatility Forecasting
+    authors: [I. Maingo, T. Ravele, C. Sigauke]
+    year: 2025
+    venue: "International Journal of Financial Studies 13, 155"
+    doi: 10.3390/ijfs13030155
+    local_pdf: ijfs-13-00155.pdf
+    integration_type: residual_hybrid_ensemble
+    models: [GARCHXGBoost]
+    design_note: |
+      A residual correction: the booster is fitted to what GARCH leaves over,
+      so it cannot relearn the GARCH signal and claim credit for it.
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: low
+    build_decision: REPRODUCE
+
+  - paper_id: sentiment_garch_lstm_2026
+    title: A sentiment-based hybrid GARCH-LSTM model for volatility and Value-at-Risk forecasting
+    year: 2026
+    venue: "Computational Economics 67, 313-353"
+    doi: 10.1007/s10614-025-11042-8
+    local_pdf: s10614-025-11042-8.pdf
+    integration_type: exogenous_hybrid
+    models: [SentimentGARCHX, SentimentGARCHLSTM]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: low
+    build_decision: REPRODUCE
+    blockers: [proprietary_sentiment_data]
+
+  - paper_id: rl_var_ddqn_2025
+    title: A hybrid Value-at-Risk framework integrating GARCH forecasts with a Double Deep Q-Network
+    year: 2025
+    venue: Computational Economics
+    doi: 10.1007/s10614-025-11191-w
+    preprint: https://arxiv.org/abs/2504.16635
+    local_pdf: s10614-025-11191-w.pdf
+    integration_type: reinforcement_learning
+    models: [GARCHDDQNVaR]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: low
+    build_decision: IMPLEMENT
+
+  - paper_id: li2026_garch_fis
+    title: "GARCH-FIS: A Hybrid Forecasting Model with Dynamic Volatility-Driven
+            Parameter Adaptation"
+    authors: [Wen-Jing Li, Da-Qing Zhang]
+    year: 2026
+    paper_url: https://arxiv.org/abs/2603.14793
+    local_pdf: 2603.14793v1.pdf
+    integration_type: fuzzy
+    models: [GARCHFIS]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: low
+    build_decision: IMPLEMENT
+
+  # ---------------- new material, not present in the ecosystem master file ----
+  - paper_id: rubio2026_stacked_ml_garch
+    title: "Stacked ML-GARCH for Bitcoin Risk Forecasting: A Novel Ensemble Approach
+            for Superior Value-at-Risk Estimation"
+    authors: [Lihki Rubio, Keyla V. Alba, Carlos E. Velasquez, Filipe R. Ramos]
+    year: 2026
+    venue: "Mathematics 14, 624"
+    local_pdf: mathematics-14-00624.pdf
+    integration_type: ensemble_stacking
+    models: [StackedMLGARCH]
+    design_note: |
+      Out-of-fold predictions use contiguous time blocks; random K-fold on
+      time-ordered data would be look-ahead.
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: medium
+    build_decision: REPRODUCE
+    note: "Not referenced in garch_ai_ecosystem_complete_master.txt; occupies the
+           StackedGARCHLSTM slot."
+
+  - paper_id: gebreslase2026_multi_garch_transformer
+    title: A Hybrid Multi-GARCH Transformer Model for Stock Price Volatility Forecasting
+    authors: [Tirhas Tesfay Gebreslase, Kilai Mutua, Yemane Hailu Fissuh, Tsgab Gebrecherkos Girmay]
+    year: 2026
+    venue: "Commun. Math. Biol. Neurosci. 2026:48"
+    doi: 10.28919/cmbn/9834
+    local_pdf: 9834-21576-1-PB.pdf
+    integration_type: transformer_hybrid
+    models: [MultiGARCHTransformer]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: medium
+    build_decision: REPRODUCE
+    note: "Not referenced in garch_ai_ecosystem_complete_master.txt."
+
+  # --------------------------- supplied 2026-08-14, second batch ------------
+  - paper_id: liu2020_ann_garch
+    title: A GARCH Model with Artificial Neural Networks
+    authors: [Wing Ki Liu, Mike K. P. So]
+    year: 2020
+    venue: "Information 11(10), 489"
+    doi: 10.3390/info11100489
+    paper_url: https://www.mdpi.com/2078-2489/11/10/489
+    local_pdf: "A GARCH Model with Artificial Neural Networks.pdf"
+    integration_type: structural_likelihood
+    models: [ANNGARCH]
+    design_note: |
+      LikelihoodGARCHLSTM is exported as an alias of ANNGARCH.
+    key_equations: "Eqs.1-2 GARCH(1,1); Eqs.3-6 LSTM cell; Eq.7 h_t readout;
+                    §2.2 standardized Student-t negative log-likelihood"
+    spec:
+      innovation: "r_t = eps_t * sqrt(h_t), eps_t ~ T(0, 1, nu) standardized"
+      readout: "h_t = (log(exp(D(y_c1(t))) + 1))^2   # softplus, then squared"
+      lookback: 20
+      deep_head: "dense layers; identity activation preferred over ReLU
+                  (ReLU gave zero-gradient regions)"
+      objective: "negative log-likelihood, full normalising constants included"
+      interpretability: "variable importance = drop in log-likelihood when a
+                         variable is removed"
+    data:
+      series: S&P 500 Index
+      n: 5032
+      range: "2000-02-29 .. 2020-02-28"
+      source: Bloomberg Terminal
+      returns: "r_t = (P_t - P_{t-1})/P_{t-1} * 100   # simple, not log"
+      exog: "17 variables incl. Total Assets, Net Debt/Share, Book Value/Share,
+             Enterprise Value, Net Debt/EBITDA"
+      availability: PROPRIETARY
+      substitution_required: true      # see docs/04_DATA_POLICY.md
+    reproducible_exhibits: [Table 1, variable-importance table, return-vs-sigma plots]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: medium_high
+    build_decision: IMPLEMENT
+
+  - paper_id: yu2025_genshin
+    title: Does multi-scale GARCH information enhance volatility prediction?
+    authors: [Rentian Yu, Haotian Xiao, Yukun Zhu, Gongqiu Zhang]
+    year: 2025
+    venue: "Finance Research Letters 78, 107196"
+    paper_url: https://www.sciencedirect.com/science/article/abs/pii/S1544612325004593
+    local_pdf: "Does multi-scale GARCH information enhance volatility prediction.pdf"
+    integration_type: graph_multiscale
+    models: [GENSHIN, MSGNet, GARCHFeatureBank, GENSHINFeatures]
+    design_note: |
+      MultiScaleGARCHGraphNet in the original blueprint is MSGNet, the
+      paper's own name (after Cai et al. 2024). Two supporting pieces were
+      built because nothing else provides them: ComponentGARCHCell (csGARCH,
+      absent from `arch`) and variational_mode_decomposition.
+    framework_name: "GARCH Estimation based Network for Stock Index Heteroskedasticity INformation"
+    pipeline:
+      1_garch_extraction:
+        specs: [sGARCH, EGARCH, GJR-GARCH, apARCH, csGARCH]
+        lags: [[1, 1], [1, 3], [2, 1], [5, 5]]
+        distributions: [normal, student-t, GED]
+        total_models: 60
+      2_vmd: "variational mode decomposition, 4 IMFs per fitted volatility -> 240 IMFs"
+      3_pls: "partial least squares -> 6 principal components as network input"
+      4_msgnet:
+        fft: "F = Avg(Amp(FFT(X_emb))); scales s_i = L / f_i from argTopk amplitudes"
+        adjacency: "A_i = SoftMax(ReLU(E1_i E2_i^T))  (adaptive, learned)"
+        conv: MixHop
+        attention: "multi-head, intra-series"
+        aggregation: "amplitude-weighted SoftMax over k scales"
+        projection: "X_hat = W_s X_out W_t + b"
+    data:
+      series: [SSE, SSE50, CSI300, CSI500, CSI1000, SZSE, GEI, STAR]
+      target: "RV_t = sqrt(sum_{i=1}^{M} r^2_{i,t}) * 100%, 5-min sampling, M = 48"
+      availability: "Chinese index 5-min intraday; not on Yahoo Finance"
+      substitution_required: true      # see docs/04_DATA_POLICY.md
+    baselines: [LSTM-Attn, Autoformer, FEDformer, DLinear, PatchTST, TimesNet]
+    reproducible_exhibits: [Table 1, model comparison tables, cross-index generalisation]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    priority: high
+    build_decision: IMPLEMENT
+    new_dependencies: ["VMD (own implementation or vmdpy)",
+                       "csGARCH component model — NOT available in `arch`, must be built"]
+
+  - paper_id: declerk2022_amortized_garch
+    title: AI algorithms for fitting GARCH parameters to empirical financial data
+    authors: [Luke De Clerk, Sergey Savel'ev]
+    year: 2022
+    venue: "Physica A 603, 127869"
+    doi: 10.1016/j.physa.2022.127869
+    paper_url: https://www.sciencedirect.com/science/article/pii/S0378437122005611
+    local_pdf: "AI algorithms for fitting GARCH parameters to empirical financial data.pdf"
+    license: "CC BY-NC-ND 4.0 (open access)"
+    integration_type: amortized_inference
+    models: [AmortizedGARCHInference, GARCHParameters]
+    design_note: |
+      NeuralGARCHEstimator is exported as an alias of
+      AmortizedGARCHInference. The closed forms of Eqs. 2-4 are free
+      functions (garch_moment_map, normalised_autocovariance,
+      fourth_standardised_moment, empirical_moments) so they can be used
+      without the network at all.
+    key_equations:
+      - "Eq.2 normalised autocovariance of squared returns:
+         gamma_n_hat = 2*a1*(1 - a1*b1 - b1^2) / (1 - 3*a1^2 - 2*a1*b1 - b1^2) * (a1+b1)^(n-1)"
+      - "Eq.3 fourth standardised moment: Gamma4 = 3 + 6*a1^2 / (1 - 3*a1^2 - 2*a1*b1 - b1^2)"
+      - "Eq.4 sigma^2 = alpha0 / (1 - alpha1 - beta1)"
+      - "Eqs.5-8 empirical estimators of gamma_n and Gamma4"
+    spec:
+      inputs: "(gamma_n_hat with n = 15, Gamma4)"
+      network: "MLP 2 -> 25 -> 205 -> 205 -> 25 -> 1, PyTorch"
+      output: alpha1
+      then: "beta1 by inverting Eq.3; alpha0 from Eq.4"
+      training_set: "125,000 synthetic (alpha1, beta1) draws via Eqs.2-3;
+                     split 50k train / 25k val / 50k test"
+      optimizer: Adam
+      lr: 0.001
+      epochs: 1000
+      loss: MSE
+      early_stopping: true
+      admissibility: "reject empirical (Gamma4, gamma_n) pairs outside the
+                      GARCH-feasible region (Fig.1) — a real guard, must be implemented"
+    data: {source: "public databases", assets: "banking, commodity ETFs, indices,
+           pharma, autos, shipping, mining, retail, UK gilt yield",
+           windows: "18y (4536 days) truncated to 1% then grown in 0.1% steps -> 1000 windows"}
+    reproducible_exhibits: [Figure 1 feasibility diagram, Figure 2 ANN fit]
+    code_status: NO_PUBLIC_CODE_IDENTIFIED
+    related_repo: https://github.com/jhihan/GARCH_Neural_Network
+    priority: medium_high
+    build_decision: IMPLEMENT
+    note: "The ANN is trained on analytically-generated moment pairs. This is
+           legitimate synthetic *training* data, not a simulated *example* — the
+           worked example still fits real assets."
+
+# ---------------------------------------------------------------------------
+# Referenced in the ecosystem file but NOT supplied — see docs/03_MISSING_RESOURCES.md
+missing_papers:
+  - paper_id: stacking_garch_lstm_array2026
+    doi: 10.1016/j.array.2026.100700
+    blocks: [StackedGARCHLSTM]
+    severity: non_blocking
+    note: "covered in practice by rubio2026_stacked_ml_garch"
+  - paper_id: bitcoin_hybrid_garch_ml
+    url: "https://www.mdpi.com/2227-9091/10/12/237"
+    severity: non_blocking
+    role: benchmark_breadth
+  - paper_id: kakade2022_var_ensemble
+    doi: 10.1016/j.resourpol.2022.102903
+    severity: non_blocking
+    role: benchmark_breadth

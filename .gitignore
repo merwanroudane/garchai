@@ -1,0 +1,29 @@
+# Research corpus — kept locally, never redistributed (paywalled publisher PDFs)
+*.pdf
+*.zip
+*.7z
+*.mat
+garch_ai_ecosystem_complete_master*
+garch_lstm_best_papers_and_code_notes.txt
+neural_garch_library_research_and_build_notes.txt
+CLAUDE_GARCHAI_BUILD_REQUIREMENTS.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Artefacts
+outputs/
+runs/
+*.garchai
+.ipynb_checkpoints/
