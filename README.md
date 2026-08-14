@@ -1,6 +1,14 @@
 # garchai
 
+[![PyPI version](https://img.shields.io/pypi/v/garchai.svg)](https://pypi.org/project/garchai/)
+[![Python versions](https://img.shields.io/pypi/pyversions/garchai.svg)](https://pypi.org/project/garchai/)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-green.svg)](https://github.com/merwanroudane/garchai/blob/main/LICENSE)
+[![Tests](https://img.shields.io/badge/tests-597%20passing-brightgreen.svg)](https://github.com/merwanroudane/garchai/tree/main/tests)
+[![Papers implemented](https://img.shields.io/badge/papers-24-blue.svg)](https://github.com/merwanroudane/garchai/blob/main/docs/01_COVERAGE_MATRIX.md)
+
 **Econometrically constrained, differentiable, AI-enhanced conditional heteroskedasticity models.**
+
+📦 **[PyPI](https://pypi.org/project/garchai/)** · 💻 **[GitHub](https://github.com/merwanroudane/garchai)** · 📖 **[Docs](https://github.com/merwanroudane/garchai/tree/main/docs)** · 🐛 **[Issues](https://github.com/merwanroudane/garchai/issues)**
 
 `garchai` implements **24 published GARCH-AI papers** as a single, consistent Python library. Every model is built from its source paper, carries machine-readable provenance, and states its own deviations from the paper out loud.
 

@@ -49,7 +49,11 @@ all = [
 [project.urls]
 Homepage = "https://github.com/merwanroudane/garchai"
 Repository = "https://github.com/merwanroudane/garchai"
+Documentation = "https://github.com/merwanroudane/garchai#readme"
 Issues = "https://github.com/merwanroudane/garchai/issues"
+Changelog = "https://github.com/merwanroudane/garchai/releases"
+"Reproduction log" = "https://github.com/merwanroudane/garchai/blob/main/docs/05_REPRODUCTION_LOG.md"
+"Paper coverage" = "https://github.com/merwanroudane/garchai/blob/main/docs/01_COVERAGE_MATRIX.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
