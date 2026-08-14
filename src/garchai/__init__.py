@@ -14,7 +14,7 @@ reached from here through :mod:`garchai.adapters`. ``garchai`` owns the
 structural, embedded, informed, Bayesian and constrained-multivariate families.
 """
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"
 __author__ = "Merwan Roudane"
 __email__ = "merwanroudane920@gmail.com"
 __url__ = "https://github.com/merwanroudane/garchai"
