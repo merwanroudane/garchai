@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>garchai — The GARCH-AI Ecosystem</title>
+<meta name="description" content="A research-grade Python library implementing 24 published GARCH-AI papers: theory, taxonomy, algorithms, tests, results and a guide to choosing between them. By Dr Merwan Roudane.">
+<meta name="author" content="Dr Merwan Roudane">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<style>
+:root{
+  /* sunny core */
+  --gold:#f0a323; --sun:#e8890c; --sunset:#f2704e; --coral:#e2574c;
+  --sky:#2f9fd6; --sky-d:#1d7fb0; --teal:#17a398; --green:#7cb342; --rose:#e05b8a;
+  /* warm neutrals */
+  --ink:#3a3226; --body:#5b5040; --muted:#8a7c69;
+  --line:#efe4d2; --line-2:#f7efe3;
+  --bg:#fffdfa; --bg-soft:#fdf7ed; --bg-tint:#fdf1dd; --bg-warm:#fef6e8;
+  /* the few dark accents */
+  --dark:#2a2318; --dark-2:#3a3125; --dark-line:#4d4232;
+  --dark-text:#e8ded0; --dark-mute:#b5a68f;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(90,70,35,.06), 0 8px 24px rgba(90,70,35,.08);
+  --shadow-lg:0 2px 4px rgba(90,70,35,.06), 0 16px 44px rgba(90,70,35,.12);
+  --sans:"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--body);font-family:var(--sans);
+  font-size:16px;line-height:1.68;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{color:var(--ink);line-height:1.25;margin:0 0 .5em;font-weight:650}
+h2{font-size:1.85rem;margin-top:0}
+h3{font-size:1.28rem;margin-top:2.2rem}
+h4{font-size:1.05rem;margin-top:1.6rem}
+p{margin:0 0 1.1em}
+a{color:var(--sky-d);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em;background:var(--bg-tint);
+  color:#a8620a;padding:.14em .42em;border-radius:5px}
+pre{background:linear-gradient(160deg,var(--dark-2) 0%,var(--dark) 100%);
+  border:1px solid var(--dark-line);border-radius:11px;
+  padding:1.15rem 1.35rem;overflow-x:auto;margin:0 0 1.2em;box-shadow:var(--shadow)}
+pre code{background:none;color:var(--dark-text);padding:0;font-size:.855rem;line-height:1.68}
+.k{color:#e9a0d0} .s{color:#a8d977} .c{color:#9b8b74;font-style:italic}
+.n{color:#f0a323} .f{color:#6fc7ec}
+
+/* ---- top bar ---- */
+.topbar{position:sticky;top:0;z-index:60;background:rgba(255,253,250,.93);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1400px;margin:0 auto;padding:.75rem 1.5rem;
+  display:flex;align-items:center;gap:1.5rem}
+.brand{font-weight:700;color:var(--ink);font-size:1.12rem;letter-spacing:-.01em}
+.brand span{color:var(--sun)}
+.topnav{margin-left:auto;display:flex;gap:1.35rem;flex-wrap:wrap}
+.topnav a{color:var(--body);font-size:.92rem;font-weight:500}
+.topnav a:hover{color:var(--sky-d);text-decoration:none}
+
+/* ---- hero ---- */
+.hero{background:linear-gradient(165deg,#fff6e2 0%,#fdecd0 38%,#fdf7ec 78%,#fffdfa 100%);position:relative;overflow:hidden;
+  border-bottom:1px solid var(--line);padding:4.2rem 1.5rem 3.6rem}
+.hero::after{content:"";position:absolute;top:-170px;right:-130px;width:540px;height:540px;border-radius:50%;background:radial-gradient(circle,rgba(240,163,35,.26) 0%,rgba(240,163,35,0) 68%);pointer-events:none}
+.hero-in{max-width:1180px;margin:0 auto;position:relative;z-index:2}
+.eyebrow{display:inline-block;background:#fff;border:1px solid #f3d9a8;
+  color:var(--sun);font-size:.79rem;font-weight:650;letter-spacing:.07em;
+  text-transform:uppercase;padding:.4rem .9rem;border-radius:999px;margin-bottom:1.3rem}
+.hero h1{font-size:3.2rem;letter-spacing:-.028em;margin-bottom:.35rem}
+.hero .tag{font-size:1.28rem;color:var(--body);max-width:64ch;margin-bottom:.5rem}
+.byline{font-size:1rem;color:var(--muted);margin-bottom:1.7rem}
+.byline strong{color:var(--ink);font-weight:600}
+.badges{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.9rem}
+.badges img{height:22px}
+.cta{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;padding:.7rem 1.4rem;border-radius:9px;font-weight:600;
+  font-size:.95rem;border:1px solid transparent;transition:.15s}
+.btn-p{background:linear-gradient(135deg,var(--gold) 0%,var(--sun) 100%);color:#fff;box-shadow:0 4px 14px rgba(232,137,12,.30)}
+.btn-p:hover{background:linear-gradient(135deg,var(--sun) 0%,#d17a06 100%);text-decoration:none}
+.btn-s{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn-s:hover{border-color:var(--gold);color:var(--sun);text-decoration:none}
+.hero pre{margin-top:1.8rem;max-width:560px;box-shadow:var(--shadow-lg)}
+
+/* ---- stats ---- */
+.stats{max-width:1180px;margin:-2.1rem auto 0;padding:0 1.5rem;position:relative;z-index:5}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1rem}
+.stat{background:linear-gradient(160deg,var(--dark-2) 0%,var(--dark) 100%);
+  border:1px solid var(--dark-line);border-radius:var(--radius);
+  padding:1.35rem 1.1rem;text-align:center;box-shadow:var(--shadow-lg)}
+.stat .v{font-size:2rem;font-weight:700;color:var(--gold);line-height:1;display:block}
+.stat .l{font-size:.82rem;color:var(--dark-mute);margin-top:.42rem;display:block;
+  text-transform:uppercase;letter-spacing:.045em;font-weight:600}
+.stat code{background:rgba(240,163,35,.16);color:var(--gold)}
+
+/* ---- layout ---- */
+.wrap{max-width:1400px;margin:0 auto;padding:3.4rem 1.5rem 4rem;
+  display:grid;grid-template-columns:246px 1fr;gap:3.2rem;align-items:start}
+.toc{position:sticky;top:74px;font-size:.9rem;max-height:calc(100vh - 100px);overflow-y:auto}
+.toc-t{font-size:.74rem;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--muted);font-weight:700;margin-bottom:.85rem}
+.toc a{display:block;padding:.34rem 0 .34rem .85rem;color:var(--body);
+  border-left:2px solid var(--line-2);line-height:1.42}
+.toc a:hover{color:var(--sun);border-left-color:var(--gold);text-decoration:none}
+.toc a.sub{padding-left:1.7rem;font-size:.85rem;color:var(--muted)}
+main{min-width:0}
+section{margin-bottom:4.6rem;scroll-margin-top:78px}
+.lead{font-size:1.1rem;color:var(--body);max-width:74ch;margin-bottom:1.9rem}
+
+/* ---- cards ---- */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:1.5rem 1.7rem;margin-bottom:1.2rem;box-shadow:var(--shadow)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:1.2rem}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:1.1rem}
+.card h4{margin-top:0}
+.pill{display:inline-block;font-size:.71rem;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;padding:.24rem .62rem;border-radius:999px;margin-bottom:.7rem}
+.p-blue{background:#e2f2fb;color:#1d7fb0} .p-teal{background:#ddf4f1;color:#0f8b81}
+.p-coral{background:#fdeae6;color:#cf4b3f} .p-amber{background:#fdf0d8;color:#b3730a}
+.p-violet{background:#fce9f1;color:#c44a76} .p-green{background:#eef6e4;color:#5f8f31}
+.p-rose{background:#fce9f1;color:#c44a76} .p-grey{background:#f3eee5;color:#7a6c58}
+
+/* ---- callouts ---- */
+.note{border-left:4px solid var(--gold);background:var(--bg-tint);
+  border-radius:0 10px 10px 0;padding:1.05rem 1.35rem;margin:1.3rem 0}
+.note.warn{border-left-color:var(--sun);background:#fdf4e2}
+.note.good{border-left-color:var(--green);background:#f1f8e8}
+.note.hon{border-left-color:var(--coral);background:#fdeee9}
+.note p:last-child{margin-bottom:0}
+.note .lbl{font-weight:700;color:var(--ink);display:block;margin-bottom:.28rem;font-size:.93rem}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;margin:1.3rem 0;border:1px solid var(--line);
+  border-radius:var(--radius);background:#fff;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+th{background:var(--bg-soft);color:var(--ink);font-weight:650;text-align:left;
+  padding:.82rem 1rem;border-bottom:2px solid var(--line);white-space:nowrap;font-size:.84rem;
+  text-transform:uppercase;letter-spacing:.03em}
+td{padding:.78rem 1rem;border-bottom:1px solid var(--line-2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg-warm)}
+td.num{text-align:right;font-family:var(--mono);font-size:.85rem}
+.best{font-weight:700;color:var(--green)}
+.bad{font-weight:700;color:var(--coral)}
+caption{caption-side:bottom;padding:.85rem 1rem;font-size:.86rem;color:var(--muted);background:var(--bg-soft);
+  text-align:left;border-top:1px solid var(--line-2)}
+
+/* ---- figures ---- */
+figure{margin:1.7rem 0;background:#fff;border:1px solid var(--line);
+  border-radius:var(--radius);padding:1.3rem;box-shadow:var(--shadow)}
+figure img{width:100%;height:auto;display:block}
+figcaption{font-size:.89rem;color:var(--muted);margin-top:1rem;
+  padding-top:.85rem;border-top:1px solid var(--line-2)}
+figcaption b{color:var(--ink)}
+
+/* ---- equations ---- */
+.eq{background:var(--bg-warm);border:1px solid var(--line);border-radius:10px;
+  padding:1.15rem 1.4rem;margin:1.2rem 0;font-family:var(--mono);
+  font-size:.94rem;color:var(--ink);overflow-x:auto;text-align:center;line-height:2}
+.eq .where{display:block;font-family:var(--sans);font-size:.84rem;
+  color:var(--muted);margin-top:.7rem;text-align:left}
+
+/* ---- taxonomy flow ---- */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+  gap:.9rem;margin:1.7rem 0}
+.fnode{background:#fff;border:2px solid var(--line);border-radius:12px;
+  padding:1.15rem .95rem;text-align:center;position:relative;transition:.18s}
+.fnode:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.fnode .n{font-size:1.6rem;margin-bottom:.4rem;display:block}
+.fnode .t{font-weight:650;color:var(--ink);font-size:.95rem;display:block;margin-bottom:.3rem}
+.fnode .d{font-size:.81rem;color:var(--muted);line-height:1.5}
+
+/* ---- checklist ---- */
+.check{list-style:none;padding:0;margin:1.1rem 0}
+.check li{padding:.62rem 0 .62rem 2rem;position:relative;border-bottom:1px solid var(--line-2)}
+.check li:last-child{border-bottom:none}
+.check li::before{content:"✓";position:absolute;left:0;top:.62rem;color:var(--green);
+  font-weight:700;background:#eaf5e8;width:1.35rem;height:1.35rem;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.check.x li::before{content:"✕";color:var(--coral);background:#fdeae6}
+
+/* ---- decision ---- */
+.dec{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  margin:1.5rem 0;background:#fff;box-shadow:var(--shadow)}
+.dec-r{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line-2)}
+.dec-r:last-child{border-bottom:none}
+.dec-q{padding:1.05rem 1.3rem;background:var(--bg-soft);font-weight:600;color:var(--ink);
+  border-right:1px solid var(--line-2);font-size:.94rem}
+.dec-a{padding:1.05rem 1.3rem;font-size:.94rem}
+.dec-a code{font-size:.85em}
+
+/* ---- footer ---- */
+footer{background:linear-gradient(165deg,var(--dark-2) 0%,var(--dark) 100%);border-top:3px solid var(--gold);
+  padding:3.2rem 1.5rem 2.4rem;margin-top:2rem}
+.foot-in{max-width:1180px;margin:0 auto}
+.foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));
+  gap:2.2rem;margin-bottom:2.4rem}
+.foot-grid h5{color:var(--gold);font-size:.78rem;text-transform:uppercase;
+  letter-spacing:.08em;margin:0 0 .85rem;font-weight:700}
+.foot-grid a{display:block;padding:.24rem 0;font-size:.92rem;color:#c3b6a2}
+.foot-grid a:hover{color:var(--gold)}
+.foot-b{border-top:1px solid var(--dark-line);padding-top:1.7rem;font-size:.9rem;
+  color:#9b8b74;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.foot-b strong{color:var(--dark-text)}
+
+@media(max-width:1080px){
+  .wrap{grid-template-columns:1fr;gap:2rem}
+  .toc{position:static;max-height:none;border:1px solid var(--line);
+    border-radius:var(--radius);padding:1.2rem;background:var(--bg-soft)}
+  .hero h1{font-size:2.4rem}
+  .topnav{display:none}
+  .dec-r{grid-template-columns:1fr}
+  .dec-q{border-right:none;border-bottom:1px solid var(--line-2)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <span class="brand">garch<span>ai</span></span>
+  <nav class="topnav">
+    <a href="#theory">Theory</a>
+    <a href="#taxonomy">Taxonomy</a>
+    <a href="#preconditions">Preconditions</a>
+    <a href="#models">Models</a>
+    <a href="#algorithms">Algorithms</a>
+    <a href="#tests">Tests</a>
+    <a href="#choose">How to choose</a>
+    <a href="#results">Results</a>
+    <a href="https://github.com/merwanroudane/garchai">GitHub</a>
+  </nav>
+</div></div>
+
+<header class="hero"><div class="hero-in">
+  <span class="eyebrow">Open-source research software · v0.1.0</span>
+  <h1>The GARCH-AI Ecosystem</h1>
+  <p class="tag">Twenty-four published papers on neural-network volatility modelling, implemented as one consistent, tested, citable Python library.</p>
+  <p class="byline">Designed and developed by <strong>Dr Merwan Roudane</strong></p>
+  <div class="badges">
+    <a href="https://pypi.org/project/garchai/"><img src="https://img.shields.io/pypi/v/garchai.svg?color=e8890c" alt="PyPI version"></a>
+    <a href="https://pypi.org/project/garchai/"><img src="https://img.shields.io/pypi/pyversions/garchai.svg?color=17a398" alt="Python versions"></a>
+    <a href="https://github.com/merwanroudane/garchai/blob/main/LICENSE"><img src="https://img.shields.io/badge/licence-MIT-7cb342.svg" alt="MIT licence"></a>
+    <img src="https://img.shields.io/badge/tests-597%20passing-7cb342.svg" alt="597 tests">
+    <img src="https://img.shields.io/badge/papers-24-e05b8a.svg" alt="24 papers">
+  </div>
+  <div class="cta">
+    <a class="btn btn-p" href="#quickstart">Start here</a>
+    <a class="btn btn-s" href="#choose">Which model do I need?</a>
+    <a class="btn btn-s" href="https://github.com/merwanroudane/garchai">GitHub repository</a>
+    <a class="btn btn-s" href="https://pypi.org/project/garchai/">PyPI</a>
+  </div>
+  <pre><code><span class="c"># install and be running in under a minute</span>
+pip install <span class="s">"garchai[benchmarks,plots]"</span></code></pre>
+</div></header>
+
+<div class="stats"><div class="stats-grid">
+  <div class="stat"><span class="v">24</span><span class="l">Papers</span></div>
+  <div class="stat"><span class="v">21</span><span class="l">Built in full</span></div>
+  <div class="stat"><span class="v">597</span><span class="l">Tests passing</span></div>
+  <div class="stat"><span class="v">4.4e-15</span><span class="l">Parity vs <code>arch</code></span></div>
+  <div class="stat"><span class="v">9</span><span class="l">Bundled datasets</span></div>
+</div></div>
+
+<div class="wrap">
+
+<aside class="toc">
+  <div class="toc-t">On this page</div>
+  <a href="#overview">Overview</a>
+  <a href="#theory">1 · Theory</a>
+  <a href="#theory" class="sub">Stylised facts</a>
+  <a href="#garch-math" class="sub">The GARCH family</a>
+  <a href="#why-ai" class="sub">Why add AI</a>
+  <a href="#taxonomy">2 · Taxonomy of methods</a>
+  <a href="#preconditions">3 · Preconditions</a>
+  <a href="#models">4 · Model catalogue</a>
+  <a href="#algorithms">5 · Algorithms</a>
+  <a href="#tests">6 · Tests &amp; validation</a>
+  <a href="#choose">7 · How to choose</a>
+  <a href="#workflow">8 · Designing a study</a>
+  <a href="#results">9 · Results</a>
+  <a href="#quickstart">10 · Quickstart</a>
+  <a href="#honesty">11 · Negative results</a>
+  <a href="#cite">12 · Citation</a>
+</aside>
+
+<main>
+
+<section id="overview">
+<h2>Overview</h2>
+<p class="lead">Volatility is the central quantity in risk management, option pricing and portfolio construction. GARCH models have described it since 1986; neural networks describe non-linear structure that GARCH cannot. The past decade has produced dozens of papers combining the two — each with its own notation, its own data, and often no code at all.</p>
+<p><strong>garchai</strong> implements that literature as a single library. Every model is built from its source paper, carries machine-readable provenance, declares its deviations, and is tested. Where a paper's claim does not reproduce, the library says so.</p>
+
+<div class="grid-3">
+  <div class="card"><span class="pill p-blue">Faithful</span><h4>Built from the papers</h4><p style="font-size:.93rem;margin:0">Every model names its source, equations and departures. Seven of nine reference repositories carry no licence, so nothing was copied from them.</p></div>
+  <div class="card"><span class="pill p-teal">Correct</span><h4>Validated numerically</h4><p style="font-size:.93rem;margin:0">Conditional-variance paths match <code>arch</code> to 4.4e-15. Structural claims are tested, not asserted.</p></div>
+  <div class="card"><span class="pill p-coral">Honest</span><h4>Negative results published</h4><p style="font-size:.93rem;margin:0">Models report when they fail to beat their own baseline. Three such findings are documented on this page.</p></div>
+</div>
+</section>
+
+<section id="theory">
+<h2>1 · Theory</h2>
+<p class="lead">Three empirical regularities motivate everything in this library. They hold across equities, currencies, commodities and crypto, and any credible volatility model must reproduce them.</p>
+
+<figure>
+  <img src="assets/stylised_facts.svg" alt="Three panels showing volatility clustering, fat tails against a normal distribution, and autocorrelation of returns versus squared returns">
+  <figcaption><b>The three stylised facts</b>, computed on real S&amp;P 500 daily returns, 2015–2020. <b>Left:</b> turbulence arrives in bursts. <b>Centre:</b> the empirical distribution has far more mass in the tails than the normal curve. <b>Right:</b> returns themselves are almost uncorrelated, but their <em>squares</em> are strongly and persistently correlated — the single fact that makes volatility forecastable at all.</figcaption>
+</figure>
+
+<h3 id="garch-math">The GARCH family</h3>
+<p>Write the return as a conditional mean plus a shock whose size varies through time:</p>
+<div class="eq">r<sub>t</sub> = μ<sub>t</sub> + ε<sub>t</sub>,&nbsp;&nbsp;&nbsp; ε<sub>t</sub> = √h<sub>t</sub> · z<sub>t</sub>,&nbsp;&nbsp;&nbsp; z<sub>t</sub> ~ D(0, 1)
+<span class="where">h<sub>t</sub> is the <b>conditional variance</b> — the quantity every model here predicts. z<sub>t</sub> is a standardised innovation with zero mean and unit variance.</span></div>
+
+<p>The family differs only in how <code>h<sub>t</sub></code> is generated:</p>
+
+<div class="tw"><table>
+<thead><tr><th>Model</th><th>Variance equation</th><th>What it adds</th></tr></thead>
+<tbody>
+<tr><td><b>ARCH(1)</b><br><span style="font-size:.85em;color:var(--muted)">Engle 1982</span></td><td><code>h<sub>t</sub> = ω + α ε²<sub>t−1</sub></code></td><td>Volatility depends on the last shock. Needs many lags to fit real data.</td></tr>
+<tr><td><b>GARCH(1,1)</b><br><span style="font-size:.85em;color:var(--muted)">Bollerslev 1986</span></td><td><code>h<sub>t</sub> = ω + α ε²<sub>t−1</sub> + β h<sub>t−1</sub></code></td><td>Adds memory of past variance. Three parameters fit most series remarkably well.</td></tr>
+<tr><td><b>GJR-GARCH</b><br><span style="font-size:.85em;color:var(--muted)">Glosten et al. 1993</span></td><td><code>h<sub>t</sub> = ω + α ε²<sub>t−1</sub> + γ ε²<sub>t−1</sub> I<sub>[ε<sub>t−1</sub>&lt;0]</sub> + β h<sub>t−1</sub></code></td><td><b>Leverage effect:</b> falls raise volatility more than equal-sized rises.</td></tr>
+<tr><td><b>EGARCH</b><br><span style="font-size:.85em;color:var(--muted)">Nelson 1991</span></td><td><code>log h<sub>t</sub> = ω + α(|z<sub>t−1</sub>|−E|z|) + γ z<sub>t−1</sub> + β log h<sub>t−1</sub></code></td><td>Models the <em>log</em> variance, so positivity is automatic and no constraint is needed.</td></tr>
+<tr><td><b>Component</b><br><span style="font-size:.85em;color:var(--muted)">Engle &amp; Lee 1999</span></td><td><code>h<sub>t</sub> − q<sub>t</sub> = α(ε²<sub>t−1</sub> − q<sub>t−1</sub>) + β(h<sub>t−1</sub> − q<sub>t−1</sub>)</code></td><td>Splits volatility into a slow permanent level and fast transitory swings.</td></tr>
+</tbody>
+<caption>Every one of these exists in <code>garchai</code> as a differentiable PyTorch cell, so a neural network can be attached at any point in the recursion.</caption>
+</table></div>
+
+<div class="note"><span class="lbl">The one number to read first: persistence</span>
+<p><code>α + β</code> measures how long a shock to volatility survives. Values near 1 — 0.97 is typical for equity indices — mean today's surprise still moves variance months from now. If your estimate exceeds 1 the process is non-stationary and the long-run variance does not exist; <code>garchai</code> enforces <code>α + β &lt; 1</code> structurally through a softmax-simplex transform rather than checking afterwards.</p></div>
+
+<figure>
+  <img src="assets/conditional_volatility.svg" alt="S&P 500 returns with a fitted plus-or-minus two sigma band from GJR-GARCH">
+  <figcaption><b>What a fitted model actually gives you.</b> The band is ±2σ<sub>t</sub> from GJR-GARCH. A well-specified model produces a band the returns fill <em>evenly</em>: it widens going into turbulence and contracts afterwards. The COVID shock of March 2020 is visible at the right.</figcaption>
+</figure>
+
+<figure>
+  <img src="assets/news_impact.svg" alt="News impact curves for GARCH, GJR and EGARCH">
+  <figcaption><b>The news-impact curve</b> maps yesterday's shock to today's volatility. Symmetric GARCH gives a parabola — it cannot tell a crash from a rally. GJR and EGARCH bend upward on the left, which is the <b>leverage effect</b>. On this sample it is worth having: AIC falls from <b>3558.4</b> (GARCH) to <b>3517.3</b> (GJR) to <b>3515.0</b> (EGARCH).</figcaption>
+</figure>
+
+<h3 id="why-ai">Why add a neural network?</h3>
+<p>GARCH imposes a rigid functional form. It is astonishingly robust — decades of attempts to beat it have mostly failed — but three limitations are genuine and motivate every paper in this library:</p>
+<div class="grid-3">
+  <div class="card"><span class="pill p-amber">Limitation 1</span><h4>Fixed non-linearity</h4><p style="font-size:.93rem;margin:0">The response to a shock is quadratic by assumption. Real markets may respond differently to a 2σ move than a 6σ one in a way no fixed polynomial captures.</p></div>
+  <div class="card"><span class="pill p-amber">Limitation 2</span><h4>Constant parameters</h4><p style="font-size:.93rem;margin:0">One α and one β for the whole sample. Regimes change; a crisis and a calm decade plausibly have different dynamics.</p></div>
+  <div class="card"><span class="pill p-amber">Limitation 3</span><h4>No exogenous information</h4><p style="font-size:.93rem;margin:0">Only past returns enter. Order flow, sentiment, realised measures and cross-market spillovers are all excluded by construction.</p></div>
+</div>
+<div class="note warn"><span class="lbl">The trap this library is designed around</span>
+<p>An unconstrained network fitted to returns will happily produce <em>negative</em> variances, explosive recursions, and superb in-sample fit that vanishes out of sample. The interesting question is never "can a network fit volatility" — it is <b>how to add flexibility while keeping the constraints that make the object a variance at all</b>. That is what distinguishes the five approaches below.</p></div>
+</section>
+
+<section id="taxonomy">
+<h2>2 · Taxonomy of methods</h2>
+<p class="lead">The twenty-four papers fall into five families. They are not variations on a theme — they differ in <em>where</em> the network is allowed to touch the model, and that choice determines what guarantees survive.</p>
+
+<div class="flow">
+  <div class="fnode"><span class="n">🏗️</span><span class="t">A · Structural</span><span class="d">Network <b>inside</b> the variance recursion</span></div>
+  <div class="fnode"><span class="n">🎯</span><span class="t">B · Informed</span><span class="d">GARCH enters the <b>loss function</b></span></div>
+  <div class="fnode"><span class="n">🔗</span><span class="t">C · Feature</span><span class="d">GARCH output is an <b>input</b> to a learner</span></div>
+  <div class="fnode"><span class="n">🌐</span><span class="t">D · Decomposition</span><span class="d">Signal split, then modelled per component</span></div>
+  <div class="fnode"><span class="n">🎲</span><span class="t">E · Decision</span><span class="d">Volatility feeds a <b>policy</b> or rule system</span></div>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>Family</th><th>Where the network sits</th><th>Constraints retained</th><th>Interpretable?</th><th>Data needed</th><th>Models</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="pill p-blue" style="margin:0">A · Structural</span></td>
+  <td>Inside the recursion for <code>h<sub>t</sub></code></td>
+  <td class="best">All — positivity and stationarity enforced by construction</td>
+  <td>High — parameters keep their meaning</td>
+  <td>Returns only</td>
+  <td><code>GARCHNN</code>, <code>RECH</code>, <code>SigmaCell</code>, <code>GARCHNet</code>, <code>NeuralGARCH</code>, <code>DeepRGARCH</code>, <code>ANNGARCH</code>, <code>EmbeddedGARCH*</code></td>
+</tr>
+<tr>
+  <td><span class="pill p-teal" style="margin:0">B · Informed</span></td>
+  <td>Free architecture; GARCH penalises the loss</td>
+  <td>Soft — a penalty, not a guarantee</td>
+  <td>Medium</td>
+  <td>Returns only</td>
+  <td><code>GINN</code>, <code>GINN0</code></td>
+</tr>
+<tr>
+  <td><span class="pill p-amber" style="margin:0">C · Feature</span></td>
+  <td>Entirely outside; GARCH is a column</td>
+  <td class="bad">None — the learner may output anything</td>
+  <td>Low</td>
+  <td>Returns + a volatility proxy</td>
+  <td><code>LSTMANNGARCH</code>, <code>GARCHXGBoost</code>, <code>StackedMLGARCH</code>, <code>MultiGARCHTransformer</code>, <code>GARCHTFT</code></td>
+</tr>
+<tr>
+  <td><span class="pill p-violet" style="margin:0">D · Decomposition</span></td>
+  <td>After splitting the signal by frequency or timescale</td>
+  <td>Depends on the per-component model</td>
+  <td>Medium</td>
+  <td>Returns; ideally long samples</td>
+  <td><code>GENSHIN</code>, <code>MSGNet</code>, component GARCH, VMD</td>
+</tr>
+<tr>
+  <td><span class="pill p-rose" style="margin:0">E · Decision</span></td>
+  <td>Consumes volatility to act, not to forecast</td>
+  <td>Inherited from the volatility model</td>
+  <td>Medium–High</td>
+  <td>Returns + a labelling rule</td>
+  <td><code>GARCHDDQNVaR</code>, <code>GARCHFIS</code></td>
+</tr>
+</tbody>
+<caption>Multivariate models (<code>DCCGARCHMANN</code>, <code>NeuralBEKK</code>) cut across families: they extend any of the above to a panel of assets and add correlation dynamics.</caption>
+</table></div>
+
+<div class="note"><span class="lbl">Reading the trade-off</span>
+<p>Moving down the table buys flexibility and gives up guarantees. Family <b>A</b> cannot produce a negative variance because the transform forbids it; family <b>C</b> can, and routinely does unless you clamp the output. Family <b>A</b> models also reduce <em>exactly</em> to their econometric parent when the network weight is zero — a property this library tests numerically (<code>GARCHNN</code> to 0.0e+00, <code>RECH</code> to 4.4e-16). Family <b>C</b> has no such fallback: if the network is useless, the model is useless.</p></div>
+</section>
+
+<section id="preconditions">
+<h2>3 · Preconditions</h2>
+<p class="lead">Most volatility results that fail to replicate fail for reasons upstream of the model. Work through this before fitting anything.</p>
+
+<h3>3.1 Data requirements</h3>
+<div class="tw"><table>
+<thead><tr><th>Requirement</th><th>Why</th><th>How to check</th><th>If violated</th></tr></thead>
+<tbody>
+<tr><td><b>Returns, not prices</b></td><td>Prices are non-stationary (near unit-root). GARCH assumes a stationary series.</td><td><code>r = 100·Δlog(P)</code></td><td>Meaningless estimates</td></tr>
+<tr><td><b>Scaled to percent</b></td><td>Decimal returns give variance ≈1e-4; the optimiser is badly conditioned there.</td><td><code>mean(|r|) ≈ 0.5–2</code></td><td>Use <code>ModelConfig(scale="auto")</code></td></tr>
+<tr><td><b>≥ 500 observations</b></td><td>Three variance parameters need data. Below ~500, standard errors are unusable.</td><td><code>len(r)</code></td><td>Widen the sample or simplify the model</td></tr>
+<tr><td><b>≥ 1500 for neural models</b></td><td>Hundreds to thousands of weights. Below this, the network memorises.</td><td><code>len(r)</code></td><td>Use family A or plain GARCH</td></tr>
+<tr><td><b>ARCH effects present</b></td><td>If squared returns show no autocorrelation there is no conditional heteroskedasticity to model.</td><td>Ljung–Box on <code>r²</code></td><td>A constant-variance model is correct — stop</td></tr>
+<tr><td><b>No gaps or duplicates</b></td><td>The recursion assumes evenly spaced observations.</td><td><code>index.duplicated()</code></td><td>Reindex to trading days</td></tr>
+<tr><td><b>Mean removed</b></td><td>Leftover mean structure leaks into the variance equation.</td><td>ACF of <code>r</code></td><td>Set <code>ModelConfig(mean="ar")</code></td></tr>
+</tbody>
+</table></div>
+
+<h3>3.2 Before you fit</h3>
+<ul class="check">
+<li><b>Set float64 first.</b> <code>torch.set_default_dtype(torch.float64)</code> before constructing any model — likelihoods involve <code>log h<sub>t</sub></code> and float32 gradients are unreliable.</li>
+<li><b>Split chronologically, never randomly.</b> A random split lets the model see the future. This is the most common fatal error in the applied literature.</li>
+<li><b>Choose a volatility proxy and state it.</b> Squared returns are unbiased but extremely noisy; realised variance from intraday data is far better; a rolling standard deviation is smooth but autocorrelated, which inflates R² and makes results incomparable across papers.</li>
+<li><b>Fix every seed.</b> <code>set_seed(0)</code> covers NumPy, PyTorch and Python.</li>
+<li><b>Decide the loss before seeing results.</b> QLIKE for variance, not MSE — MSE is dominated by a handful of crisis days.</li>
+</ul>
+
+<h3>3.3 After you fit — diagnostics that decide validity</h3>
+<div class="tw"><table>
+<thead><tr><th>Check</th><th>What it detects</th><th>Pass condition</th></tr></thead>
+<tbody>
+<tr><td>Convergence status</td><td>Optimiser stopped early</td><td><code>result.converged</code> is <code>True</code>; not "maximum epochs reached"</td></tr>
+<tr><td>Persistence <code>α+β</code></td><td>Non-stationarity</td><td>&lt; 1, and ideally &lt; 0.999</td></tr>
+<tr><td>Ljung–Box on <code>z<sub>t</sub></code></td><td>Leftover mean structure</td><td>p &gt; 0.05</td></tr>
+<tr><td>Ljung–Box on <code>z²<sub>t</sub></code></td><td><b>Volatility structure the model missed</b></td><td>p &gt; 0.05 — the key diagnostic</td></tr>
+<tr><td>Sign-bias test</td><td>Unmodelled asymmetry</td><td>p &gt; 0.05, else move to GJR/EGARCH</td></tr>
+<tr><td>Kupiec &amp; Christoffersen</td><td>VaR mis-calibration and clustering</td><td>both p &gt; 0.05</td></tr>
+</tbody>
+</table></div>
+
+<div class="note hon"><span class="lbl">In-sample VaR is not a backtest</span>
+<p>If the parameters were estimated on the same returns you are testing against, the test is optimistic. A genuine evaluation refits on a rolling window that never sees the future. In this library's own documentation the in-sample example is <b>rejected</b> by Kupiec — 6.6% violations against 5% promised — and that failure is kept in the guide rather than replaced with a passing one.</p></div>
+</section>
+
+<section id="models">
+<h2>4 · Model catalogue</h2>
+<p class="lead">Twenty-one models built in full; three delegated to <code>hybridecon</code> rather than duplicated. Tiers reflect priority and structural depth: <b>S</b> is deepest integration, <b>C</b> is most applied.</p>
+
+<h3>Tier S — the network is inside the recursion</h3>
+<div class="tw"><table>
+<thead><tr><th>Paper</th><th>Classes</th><th>Idea</th><th>Family</th></tr></thead>
+<tbody>
+<tr><td><b>Zhao et al. 2024</b></td><td><code>GARCHNN</code>, <code>StructuralGARCHLSTM</code>, <code>GARCHNNKernel</code>, <code>GJRNNKernel</code>, <code>FIGARCHNNKernel</code></td><td>Network output is <em>added</em> to a GARCH kernel. Zero the weight and you recover GARCH exactly.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Nguyen et al. 2022</b></td><td><code>RECH</code>, <code>SRNGARCH</code>, <code>SRNGJR</code>, <code>LSTMtGARCH</code></td><td>A recurrent net supplies a time-varying constant <code>ω<sub>t</sub></code> while α, β stay econometric.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Liu et al. 2023</b></td><td><code>DeepRGARCH</code>, <code>RealizedGARCH</code></td><td>Adds a realised-measure equation; the network models the measurement link.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Yin &amp; Barucca 2022</b></td><td><code>NeuralGARCH</code>, <code>NeuralBEKK</code></td><td>Variational inference over <em>time-varying</em> α<sub>t</sub>, β<sub>t</sub>. BEKK extends it to a covariance matrix.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Wei et al. 2025</b></td><td><code>EmbeddedGARCHGRU</code>, <code>EmbeddedGARCHLSTM</code></td><td>The GARCH recursion is embedded as a gate inside a GRU/LSTM cell.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+</tbody>
+</table></div>
+
+<h3>Tier A — likelihood, informed loss and decomposition</h3>
+<div class="tw"><table>
+<thead><tr><th>Paper</th><th>Classes</th><th>Idea</th><th>Family</th></tr></thead>
+<tbody>
+<tr><td><b>Rodikov &amp; Antulov-Fantulin 2023</b></td><td><code>SigmaCell</code>, <code>SigmaCellN</code>, <code>-RL</code>, <code>-NTV</code>, <code>-RLTV</code></td><td>GARCH rewritten as an RNN cell — 41 parameters exactly, verified.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Rodikov &amp; Antulov-Fantulin 2022</b></td><td><code>SigmaLSTM</code></td><td>LSTM with a variance-recursion readout.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Buczynski &amp; Chlebus 2023</b></td><td><code>GARCHNet</code></td><td>The <em>distribution shape</em> (η<sub>t</sub>, λ<sub>t</sub>) becomes time-varying, not just the variance.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Liu &amp; So 2020</b></td><td><code>ANNGARCH</code>, <code>LikelihoodGARCHLSTM</code></td><td>ANN trained on the GARCH likelihood, with exogenous inputs.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>De Clerk &amp; Savel'ev 2022</b></td><td><code>AmortizedGARCHInference</code></td><td>Learns the <em>estimator</em> itself from the analytic moment map — parameters in milliseconds, no MLE.</td><td><span class="pill p-blue" style="margin:0">A</span></td></tr>
+<tr><td><b>Xu et al. 2024</b></td><td><code>GINN</code>, <code>GINN0</code></td><td>GARCH enters the <b>loss</b> as a consistency penalty weighted by λ.</td><td><span class="pill p-teal" style="margin:0">B</span></td></tr>
+<tr><td><b>Yu et al. 2025</b></td><td><code>GENSHIN</code>, <code>MSGNet</code>, <code>GARCHFeatureBank</code></td><td>VMD decomposition + a 60-model GARCH bank + multi-scale graph network.</td><td><span class="pill p-violet" style="margin:0">D</span></td></tr>
+</tbody>
+</table></div>
+
+<h3>Tier B — hybrids, transformers and multivariate</h3>
+<div class="tw"><table>
+<thead><tr><th>Paper</th><th>Classes</th><th>Idea</th><th>Family</th></tr></thead>
+<tbody>
+<tr><td><b>Petrosino et al. 2025</b></td><td><code>GARCHTFT</code></td><td>Full Temporal Fusion Transformer: variable selection, interpretable attention, pinball loss.</td><td><span class="pill p-amber" style="margin:0">C</span></td></tr>
+<tr><td><b>Fatima &amp; Uddin 2022</b></td><td><code>DCCGARCHMANN</code></td><td>DCC-GARCH ↔ multivariate ANN, in <em>both</em> directions.</td><td><span class="pill p-rose" style="margin:0">multi</span></td></tr>
+<tr><td><b>Hu et al. 2020</b></td><td><code>LSTMANNGARCH</code></td><td>LSTM + ANN over GARCH features; bidirectional gives BLSTM-ANN.</td><td><span class="pill p-amber" style="margin:0">C</span></td></tr>
+<tr><td><b>Rubio et al. 2026</b></td><td><code>StackedMLGARCH</code></td><td>Stacked ensemble with blocked out-of-fold predictions.</td><td><span class="pill p-amber" style="margin:0">C</span></td></tr>
+<tr><td><b>Gebreslase et al. 2026</b></td><td><code>MultiGARCHTransformer</code></td><td>Transformer over a bank of GARCH-family forecasts.</td><td><span class="pill p-amber" style="margin:0">C</span></td></tr>
+</tbody>
+</table></div>
+
+<h3>Tier C — applied and frontier</h3>
+<div class="tw"><table>
+<thead><tr><th>Paper</th><th>Classes</th><th>Idea</th><th>Family</th></tr></thead>
+<tbody>
+<tr><td><b>Maingo et al. 2025</b></td><td><code>GARCHXGBoost</code></td><td>Gradient boosting on the GARCH <em>residual</em>, so it cannot re-learn what GARCH knew.</td><td><span class="pill p-amber" style="margin:0">C</span></td></tr>
+<tr><td><b>Pokou et al. 2025</b></td><td><code>GARCHDDQNVaR</code></td><td>VaR as classification, solved by a Double DQN with an imbalance-aware reward.</td><td><span class="pill p-rose" style="margin:0">E</span></td></tr>
+<tr><td><b>Li &amp; Zhang 2026</b></td><td><code>GARCHFIS</code></td><td>Fuzzy rule base whose membership widths scale with the GARCH forecast.</td><td><span class="pill p-rose" style="margin:0">E</span></td></tr>
+<tr><td><b>Comput. Econ. 2026</b></td><td><code>SentimentGARCHX</code>, <code>SentimentGARCHLSTM</code></td><td>Sentiment as an exogenous variance term. <b>Feed is proprietary — not reproduced.</b></td><td><span class="pill p-amber" style="margin:0">C</span></td></tr>
+</tbody>
+</table></div>
+
+<div class="note"><span class="lbl">Deliberately not duplicated</span>
+<p>Kim &amp; Won (2018), Michańków et al. (2023) and Ersin &amp; Bildirici (2023) are plain feature hybrids already covered by <code>hybridecon</code>. <code>garchai</code> delegates rather than reimplementing them — a library that duplicates its neighbours makes both harder to trust.</p></div>
+</section>
+
+<section id="algorithms">
+<h2>5 · Algorithms</h2>
+<p class="lead">The numerical machinery that makes these models trainable. Each solves a specific failure that appears the moment you put a variance recursion inside an autograd graph.</p>
+
+<div class="grid-2">
+<div class="card"><span class="pill p-blue">Constraints</span><h4>Structural parameter transforms</h4>
+<p style="font-size:.94rem">A variance must be positive and a GARCH must be stationary. Rather than clipping after each step — which breaks gradients — the parameters are <em>reparameterised</em> so violations are impossible:</p>
+<ul style="font-size:.92rem;padding-left:1.2rem">
+<li><b>Softmax simplex</b> for <code>(α, β)</code>, guaranteeing <code>α + β &lt; 1</code></li>
+<li><b>Softplus</b> for <code>ω</code> and every positive scale</li>
+<li><b>nextafter-guarded bounded map</b> for open intervals such as the Student-<i>t</i> degrees of freedom, whose boundary is exactly where the variance ceases to exist</li>
+</ul></div>
+
+<div class="card"><span class="pill p-teal">Initialisation</span><h4>Two backcast conventions</h4>
+<p style="font-size:.94rem">The recursion needs <code>h<sub>1</sub></code>, and packages disagree on it. Both are implemented exactly, because a silent mismatch makes cross-package comparison meaningless:</p>
+<ul style="font-size:.92rem;padding-left:1.2rem">
+<li><code>arch_backcast</code> — λ = 0.94, τ = min(75, T), plus one pre-sample recursion step</li>
+<li><code>tsgarch_backcast</code> — λ = 0.7, full sample, used directly</li>
+</ul>
+<p style="font-size:.92rem;margin:0">Getting the pre-sample step right moved parity with <code>arch</code> from 1e-3 to <b>4.4e-15</b>.</p></div>
+
+<div class="card"><span class="pill p-amber">Speed</span><h4>Chunked affine scan</h4>
+<p style="font-size:.94rem">The recursion <code>h<sub>t</sub> = c<sub>t−1</sub> + β h<sub>t−1</sub></code> is sequential, and a Python loop over 5,000 steps inside autograd is crippling. Evaluating it in closed form over blocks sized so <code>β<sup>−K</sup></code> stays inside float64 took filtering from <b>555 ms to 1.0 ms</b> — a 555× speed-up with no loss of precision.</p></div>
+
+<div class="card"><span class="pill p-violet">Decomposition</span><h4>VMD by ADMM</h4>
+<p style="font-size:.94rem">Variational Mode Decomposition splits a series into band-limited modes by alternating-direction optimisation with mirror extension at the boundaries. Verified by construction: planted 5 Hz, 40 Hz and 120 Hz tones are recovered exactly, and energy shares track squared amplitudes.</p></div>
+
+<div class="card"><span class="pill p-rose">Multivariate</span><h4>Two-stage DCC</h4>
+<p style="font-size:.94rem">Stage one fits a univariate GARCH per series; stage two estimates <code>(a, b)</code> on the standardised residuals by QMLE. The normalisation <code>R<sub>t</sub> = diag(Q<sub>t</sub>)<sup>−½</sup> Q<sub>t</sub> diag(Q<sub>t</sub>)<sup>−½</sup></code> is what makes <code>R<sub>t</sub></code> a correlation matrix. Recovery on simulated data: true <code>a</code> = 0.05, <code>b</code> = 0.90 → estimated <b>0.055</b>, <b>0.877</b>.</p></div>
+
+<div class="card"><span class="pill p-green">Reinforcement</span><h4>Double DQN with imbalance-aware reward</h4>
+<p style="font-size:.94rem">Crisis days are rare, so an averaged loss learns to always say "calm". The reward carries the asymmetry instead: <b>+1</b> for a detected crisis, <b>−1</b> for a false alarm, <b>±ρ</b> for the majority class where ρ is the minority/majority ratio. Double DQN decouples action <em>selection</em> from <em>evaluation</em> to remove the overestimation bias.</p></div>
+</div>
+
+<h3>Interpretability machinery</h3>
+<div class="tw"><table>
+<thead><tr><th>Mechanism</th><th>Where</th><th>What it tells you</th></tr></thead>
+<tbody>
+<tr><td><b>Variable selection networks</b></td><td><code>GARCHTFT</code></td><td>Softmax weights per input per timestep — including whether the GARCH column was used at all. On the S&amp;P 500 example it receives 0.16–0.19 against the 0.33 a uniform split would give.</td></tr>
+<tr><td><b>Interpretable attention</b></td><td><code>GARCHTFT</code></td><td>Sharing the value projection across heads makes the averaged attention map meaningful; ordinary multi-head attention gives each head its own values, so averaging them says nothing.</td></tr>
+<tr><td><b>Component decomposition</b></td><td><code>ComponentGARCHCell</code></td><td>Splits variance into permanent and transitory parts. The transitory part <em>can go negative</em> — volatility below its slow-moving level, which a one-component GARCH cannot express.</td></tr>
+<tr><td><b>Membership widths</b></td><td><code>GARCHFIS</code></td><td>Plots how "high volatility" is redefined as the regime changes.</td></tr>
+<tr><td><b>Sentiment contribution</b></td><td><code>SentimentGARCHX</code></td><td>The share of conditional variance attributable to sentiment. Near zero means the augmentation is inert whatever the likelihood says.</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section id="tests">
+<h2>6 · Tests &amp; validation</h2>
+<p class="lead">597 automated tests. They exist in four layers, and the layers answer different questions — passing unit tests says nothing about whether a paper reproduced.</p>
+
+<div class="grid-2">
+<div class="card"><span class="pill p-blue">Layer 1</span><h4>Numerical parity</h4><p style="font-size:.93rem;margin:0">Conditional-variance paths compared against <code>arch</code> observation by observation. Agreement to <b>4.4e-15</b>, i.e. floating-point noise. Any divergence is a bug in this library, not a modelling choice.</p></div>
+<div class="card"><span class="pill p-teal">Layer 2</span><h4>Structural identities</h4><p style="font-size:.93rem;margin:0">Claims a paper makes about its own architecture, tested numerically: zeroing the network weight recovers GARCH exactly (<code>GARCHNN</code> 0.0e+00, <code>RECH</code> 4.4e-16, <code>DeepRGARCH</code> 0.0); <code>NeuralBEKK</code> stays positive-definite through a 50σ shock; <code>SigmaCell</code> has exactly 41 parameters.</p></div>
+<div class="card"><span class="pill p-amber">Layer 3</span><h4>Parameter recovery</h4><p style="font-size:.93rem;margin:0">Simulate from a known process, estimate, compare. Sentiment-GARCH on a known DGP (α = 0.08, β = 0.85) recovers <b>0.0797</b>, <b>0.8638</b>. DCC recovers <b>0.055</b>, <b>0.877</b> from 0.05, 0.90.</p></div>
+<div class="card"><span class="pill p-violet">Layer 4</span><h4>Anti-leakage</h4><p style="font-size:.93rem;margin:0">The tests that matter most for published results: splits must be chronological, stacking must use <em>blocked</em> out-of-fold predictions, and any speed shortcut must declare itself in the returned object's <code>note</code>.</p></div>
+</div>
+
+<h3>Statistical tests provided for your own work</h3>
+<div class="tw"><table>
+<thead><tr><th>Test</th><th>Null hypothesis</th><th>Use it to answer</th><th>Function</th></tr></thead>
+<tbody>
+<tr><td><b>Diebold–Mariano</b></td><td>Equal predictive accuracy</td><td>Is model A significantly better than B?</td><td><code>diebold_mariano</code></td></tr>
+<tr><td><b>Giacomini–White</b></td><td>Equal conditional predictive ability</td><td>Is A better <em>given the current state</em>?</td><td><code>giacomini_white</code></td></tr>
+<tr><td><b>Model Confidence Set</b></td><td>Equal ability among survivors</td><td>Which models cannot be ruled out as best?</td><td><code>model_confidence_set</code></td></tr>
+<tr><td><b>Kupiec POF</b></td><td>Violation rate equals α</td><td>Is my VaR at the right <em>level</em>?</td><td><code>kupiec_pof</code></td></tr>
+<tr><td><b>Christoffersen independence</b></td><td>Violations are independent</td><td>Do my violations <em>cluster</em>?</td><td><code>christoffersen_independence</code></td></tr>
+<tr><td><b>Christoffersen CC</b></td><td>Correct level <em>and</em> independence</td><td>Both at once</td><td><code>christoffersen_conditional_coverage</code></td></tr>
+<tr><td><b>Dynamic quantile</b></td><td>No predictability in violations</td><td>Can violations be forecast from past information?</td><td><code>dynamic_quantile_test</code></td></tr>
+<tr><td><b>McNeil–Frey</b></td><td>Zero-mean exceedance residuals</td><td>Is my expected shortfall calibrated?</td><td><code>expected_shortfall_backtest</code></td></tr>
+</tbody>
+<caption>The Model Confidence Set typically retains <em>more than one</em> model. That is the point — it reports the set indistinguishable from best, rather than crowning a winner the data does not support.</caption>
+</table></div>
+
+<div class="note warn"><span class="lbl">A correctness bug found in a neighbouring package</span>
+<p>While validating the MCS, a defect was identified in <code>hybridecon.evaluate.model_confidence_set</code>: it studentises by the spread <em>across models within</em> a bootstrap replication, whereas Hansen's statistic requires the bootstrap variance of each <code>d̄ᵢ</code> <em>across</em> replications. <code>garchai</code> implements the correct form; the finding has been flagged upstream.</p></div>
+
+<h3>Running the suite</h3>
+<div class="tw"><table>
+<thead><tr><th>Command</th><th>Tests</th><th>Time</th><th>When</th></tr></thead>
+<tbody>
+<tr><td><code>pytest -m "not slow"</code></td><td class="num">539</td><td class="num best">1m46s</td><td>While developing</td></tr>
+<tr><td><code>pytest --doctest-modules src/garchai</code></td><td class="num">597</td><td class="num">5m43s</td><td>Before publishing anything</td></tr>
+<tr><td><code>pytest tests/numerical/ -v</code></td><td class="num">—</td><td class="num">fast</td><td>After touching a cell or transform</td></tr>
+</tbody>
+<caption>The <code>slow</code> tests are the parameter-recovery and convergence checks — the ones that would catch a real regression. Run the full suite before any release.</caption>
+</table></div>
+</section>
+
+<section id="choose">
+<h2>7 · How to choose a model</h2>
+<p class="lead">Start from your question and your data, never from the newest architecture. This table resolves most cases in one step.</p>
+
+<div class="dec">
+<div class="dec-r"><div class="dec-q">I have fewer than 1,000 observations</div><div class="dec-a">Use <code>GARCH</code>, <code>GJRGARCH</code> or <code>EGARCH</code>. Neural models will memorise. This is not a limitation to work around — it is the correct answer.</div></div>
+<div class="dec-r"><div class="dec-q">I want the best forecast and I have 2,000+ observations</div><div class="dec-a">Start with <b>family A</b>: <code>GARCHNN</code> or <code>RECH</code>. They degrade gracefully to GARCH if the network adds nothing, so you cannot do worse than the baseline by much.</div></div>
+<div class="dec-r"><div class="dec-q">I need to explain the model to a regulator or committee</div><div class="dec-a"><code>GJRGARCH</code>, <code>EGARCH</code>, or family A with <code>ComponentGARCHCell</code>. Parameters retain their economic meaning. Avoid family C.</div></div>
+<div class="dec-r"><div class="dec-q">I have intraday data</div><div class="dec-a"><code>RealizedGARCH</code> or <code>DeepRGARCH</code>. Realised measures are a far better volatility proxy than squared daily returns, and using them is usually a bigger gain than any architecture change.</div></div>
+<div class="dec-r"><div class="dec-q">I have exogenous predictors (sentiment, order flow, macro)</div><div class="dec-a"><code>ANNGARCH</code> with <code>n_exog</code>, or <code>SentimentGARCHX</code> for a single variance-equation term.</div></div>
+<div class="dec-r"><div class="dec-q">I need Value-at-Risk specifically</div><div class="dec-a">Any model, then <code>var_backtest_table</code>. If violations cluster, try <code>GARCHDDQNVaR</code> — that clustering is exactly the problem it targets.</div></div>
+<div class="dec-r"><div class="dec-q">I have several correlated assets</div><div class="dec-a"><code>DCCGARCHMANN</code> for correlation dynamics with a network, <code>NeuralBEKK</code> for a full covariance matrix.</div></div>
+<div class="dec-r"><div class="dec-q">My series has clear multi-scale structure</div><div class="dec-a"><code>GENSHIN</code> (VMD + graph network), or <code>ComponentGARCHCell</code> for a simpler permanent/transitory split.</div></div>
+<div class="dec-r"><div class="dec-q">I want maximum accuracy and interpretability is irrelevant</div><div class="dec-a"><b>Family C</b>: <code>GARCHTFT</code> or <code>MultiGARCHTransformer</code>. Budget real effort for preventing leakage — see §3.</div></div>
+<div class="dec-r"><div class="dec-q">I need to estimate GARCH on thousands of series quickly</div><div class="dec-a"><code>AmortizedGARCHInference</code>. It learns the estimator once, then returns parameters in milliseconds instead of running MLE per series.</div></div>
+</div>
+
+<div class="note good"><span class="lbl">The rule that survives every case</span>
+<p><b>Always fit plain GARCH first and report it.</b> It is the benchmark the entire literature is measured against, it takes seconds, and a neural model that cannot beat it on <em>AIC</em> — which penalises the extra parameters — has not earned its complexity. Several published hybrids do not clear this bar, and you want to discover that before submission, not after.</p></div>
+</section>
+
+<section id="workflow">
+<h2>8 · Designing a study</h2>
+<p class="lead">A defensible volatility study has seven steps. Skipping any of them is where replication failures come from.</p>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Step</th><th>Decisions</th><th>Tools</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td><b>Define the target</b></td><td>What are you forecasting — variance, volatility, VaR, a regime label? Which proxy? State it before you look at results.</td><td><code>garchai.targets</code></td></tr>
+<tr><td class="num">2</td><td><b>Prepare the data</b></td><td>Percent returns, gaps removed, ARCH effects confirmed present.</td><td><code>datasets</code>, §3</td></tr>
+<tr><td class="num">3</td><td><b>Split chronologically</b></td><td>Train / validation / test in time order. Never random.</td><td><code>features.split()</code></td></tr>
+<tr><td class="num">4</td><td><b>Fit the benchmark</b></td><td>GARCH, GJR, EGARCH with a Student-<i>t</i> distribution. This is what everything is compared against.</td><td><code>econometric</code></td></tr>
+<tr><td class="num">5</td><td><b>Fit the candidates</b></td><td>Same data, same split, same seed. Tune on validation only.</td><td><code>structural</code>, <code>ensembles</code></td></tr>
+<tr><td class="num">6</td><td><b>Evaluate with tests</b></td><td>QLIKE, not MSE. Diebold–Mariano for pairs, MCS for the set. Backtest any risk number.</td><td><code>evaluation</code>, <code>risk</code></td></tr>
+<tr><td class="num">7</td><td><b>Report honestly</b></td><td>Include the baseline, the ablation, and anything that failed. Table and figure exports are built in.</td><td><code>reporting</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="note"><span class="lbl">The ablation is the experiment</span>
+<p>If a paper's contribution is a mechanism — an informed loss, a fuzzy adaptation, a GARCH input — then the result that matters is the same model with that mechanism <em>switched off</em>. This library ships the ablations as first-class options: <code>GINN0</code> (λ = 0), <code>GARCHFIS(kappa=0)</code>, <code>GARCHTFT(use_garch=False)</code>, <code>SentimentGARCHLSTM(use_sentiment=False)</code>. A number without its ablation tells you about the pipeline, not the idea.</p></div>
+</section>
+
+<section id="results">
+<h2>9 · Results</h2>
+<p class="lead">Every figure and table below comes from real market data using the bundled loaders, and is regenerable from the repository.</p>
+
+<h3>9.1 Value-at-Risk</h3>
+<figure>
+  <img src="assets/var_exceedances.svg" alt="S&P 500 returns with 5% VaR line and exceedances marked">
+  <figcaption><b>VaR and its exceedances.</b> Each marked point is a day the loss exceeded the threshold. Two things matter: the <em>rate</em> (Kupiec) and whether exceedances <em>cluster</em> (Christoffersen). A model can pass one and fail the other, which is why the library always reports both.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>Model</th><th>Violation rate</th><th>|rate − 0.05|</th><th>Kupiec p</th><th>Christoffersen p</th></tr></thead>
+<tbody>
+<tr><td><b>GARCH-DDQN</b></td><td class="num">0.0503</td><td class="num">0.0003</td><td class="num">0.9577</td><td class="num best">0.5513</td></tr>
+<tr><td>Unconditional quantile</td><td class="num">0.0501</td><td class="num">0.0001</td><td class="num">0.9812</td><td class="num">0.1275</td></tr>
+</tbody>
+<caption>FTSE 100, 2015–2020, α = 5%. Both models hit the nominal rate, so Kupiec cannot separate them — <b>that is the point</b>. The separation is in Christoffersen: the unconditional threshold gets the long-run frequency right while bunching its violations in turbulent stretches. p-values are evidence, not scores, so no column is ranked.</caption>
+</table></div>
+
+<h3>9.2 Forecast dynamics</h3>
+<figure>
+  <img src="assets/forecast_fan.svg" alt="Multi-step volatility forecasts decaying toward long-run levels">
+  <figcaption><b>Mean reversion in action.</b> Multi-step forecasts decay toward each model's long-run level (dotted). The speed of decay <em>is</em> the persistence: at α + β ≈ 0.97 the half-life of a shock is roughly 23 trading days. EGARCH has no closed-form multi-step forecast, so the library simulates and records <code>method="simulation"</code> in the result rather than silently approximating.</figcaption>
+</figure>
+
+<h3>9.3 Multivariate correlation dynamics</h3>
+<figure>
+  <img src="assets/dcc_correlations.svg" alt="Dynamic conditional correlations between four equity indices">
+  <figcaption><b>Correlations are not constant.</b> All six pairs among S&amp;P 500, FTSE 100, Nikkei 225 and Hang Seng, from a two-stage DCC fit. Note the sharp convergence in early 2020 — diversification weakens exactly when it is needed most, which is the practical reason multivariate volatility modelling exists.</figcaption>
+</figure>
+
+<h3>9.4 Model comparison</h3>
+<figure>
+  <img src="assets/model_comparison.svg" alt="Bar charts comparing hybrid model RMSE and the GARCH-FIS ablation">
+  <figcaption><b>Left:</b> feature hybrids against the GARCH baseline on S&amp;P 500. <b>Right:</b> a negative result reported rather than buried — GARCH-FIS with its volatility adaptation switched on does <em>not</em> beat the same rule base with it off.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead>
+<tbody>
+<tr><td>BLSTM-ANN-GARCH</td><td class="num">0.0689</td><td class="num">0.0873</td><td class="num best">+0.965</td></tr>
+<tr><td>Multi-GARCH Transformer</td><td class="num best">0.0649</td><td class="num best">0.0858</td><td class="num">+0.964</td></tr>
+<tr><td>Stacked ML-GARCH</td><td class="num">0.0663</td><td class="num">0.1057</td><td class="num">+0.938</td></tr>
+<tr><td>LSTM-ANN-GARCH</td><td class="num">0.1927</td><td class="num">0.2401</td><td class="num">+0.687</td></tr>
+<tr><td>GARCH-XGBoost</td><td class="num">0.2430</td><td class="num">0.3322</td><td class="num">+0.635</td></tr>
+<tr><td><i>GARCH baseline</i></td><td class="num">—</td><td class="num">0.5445</td><td class="num">—</td></tr>
+</tbody>
+<caption><b>Read these R² with care.</b> They are far higher than the GINN figures below, and the reason is the <em>target</em>, not the models: a 5-day rolling standard deviation is strongly autocorrelated and partly recoverable from the lagged returns already in the feature set, whereas GINN predicts a single squared residual. The two tables are not comparable.</caption>
+</table></div>
+
+<h3>9.5 GARCH-TFT — a proxy-specific result</h3>
+<div class="tw"><table>
+<thead><tr><th>Target</th><th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th><th>GARCH weight</th></tr></thead>
+<tbody>
+<tr><td>HV</td><td><b>GARCH-TFT</b></td><td class="num best">0.0529</td><td class="num best">0.1469</td><td class="num">0.6048</td><td class="num">0.187</td></tr>
+<tr><td>HV</td><td>TFT, no GARCH</td><td class="num">0.0695</td><td class="num">0.1593</td><td class="num">0.5957</td><td class="num">—</td></tr>
+<tr><td>GK</td><td><b>GARCH-TFT</b></td><td class="num best">0.0439</td><td class="num best">0.0782</td><td class="num best">0.6632</td><td class="num">0.160</td></tr>
+<tr><td>GK</td><td>TFT, no GARCH</td><td class="num">0.0452</td><td class="num">0.0841</td><td class="num">0.6059</td><td class="num">—</td></tr>
+</tbody>
+<caption>The paper's claim is proxy-specific — a clear gain on Garman–Klass, near parity on historical volatility — and that direction reproduces: the R² gain from adding GARCH is <b>+0.057 on GK against +0.009 on HV</b>. The model uses its GARCH input but down-weights it (0.16–0.19 against the 0.33 of a uniform split).</caption>
+</table></div>
+</section>
+
+<section id="quickstart">
+<h2>10 · Quickstart</h2>
+<p class="lead">Real S&amp;P 500 data ships with the package. This runs as written.</p>
+<pre><code><span class="k">import</span> torch, warnings
+warnings.filterwarnings(<span class="s">"ignore"</span>)
+torch.set_default_dtype(torch.float64)      <span class="c"># always do this first</span>
+
+<span class="k">from</span> garchai.datasets <span class="k">import</span> load_returns
+<span class="k">from</span> garchai.econometric <span class="k">import</span> GARCH
+<span class="k">from</span> garchai.core <span class="k">import</span> ModelConfig, TrainConfig
+
+returns = <span class="f">load_returns</span>(<span class="s">"sp500"</span>, start=<span class="s">"2015-01-01"</span>, end=<span class="s">"2020-12-31"</span>)
+
+model  = <span class="f">GARCH</span>(config=<span class="f">ModelConfig</span>(distribution=<span class="s">"student-t"</span>))
+result = model.<span class="f">fit</span>(returns, <span class="f">TrainConfig</span>(max_epochs=<span class="n">800</span>, refine_with_lbfgs=<span class="k">True</span>))
+
+<span class="f">print</span>(model.<span class="f">summary</span>())               <span class="c"># parameters, persistence, provenance</span>
+<span class="f">print</span>(model.<span class="f">forecast</span>(horizon=<span class="n">5</span>).variance)
+<span class="f">print</span>(model.<span class="f">var</span>(alpha=<span class="n">0.05</span>)[-<span class="n">3</span>:])     <span class="c"># Value-at-Risk</span></code></pre>
+
+<p>Then swap in any neural model — the interface is identical:</p>
+<pre><code><span class="k">from</span> garchai.structural <span class="k">import</span> GARCHNN, RECH, SigmaCell
+
+model = <span class="f">GARCHNN</span>(kernel=<span class="s">"gjr"</span>)      <span class="c"># network inside the recursion</span>
+model.<span class="f">fit</span>(returns, <span class="f">TrainConfig</span>(lr=<span class="n">1e-3</span>, max_epochs=<span class="n">300</span>))
+<span class="f">print</span>(model.<span class="f">summary</span>())</code></pre>
+
+<div class="cta" style="margin-top:1.6rem">
+  <a class="btn btn-p" href="https://github.com/merwanroudane/garchai#readme">Full step-by-step guide</a>
+  <a class="btn btn-s" href="https://github.com/merwanroudane/garchai/tree/main/examples">Runnable examples</a>
+</div>
+</section>
+
+<section id="honesty">
+<h2>11 · Negative results</h2>
+<p class="lead">Software that only reports its successes is not research software. Three findings from this library's own reproduction work, published in full.</p>
+
+<div class="grid-2">
+<div class="card" style="border-left:4px solid var(--coral)"><span class="pill p-coral">Does not reproduce</span><h4>GARCH-FIS adaptation</h4>
+<p style="font-size:.94rem">The paper's sole contribution — membership widths scaling with GARCH volatility — makes RMSE and R² <em>worse</em> against its own κ = 0 ablation on S&amp;P 500 returns. Two caveats are recorded (the paper forecasts prices, not returns; the scaling law is ours because the paper gives none) and both are labelled untested conjectures rather than explanations.</p></div>
+
+<div class="card" style="border-left:4px solid var(--gold)"><span class="pill p-amber">Ensemble adds nothing</span><h4>Stacked ML-GARCH</h4>
+<p style="font-size:.94rem">RMSE 0.1057 against 0.0569 for the best of its own base learners. The class returns <code>beats_best_base: False</code> rather than quoting only its own error — the expected hazard of stacking on 682 rows, and the reason the metric exists.</p></div>
+
+<div class="card" style="border-left:4px solid var(--rose)"><span class="pill p-violet">Blocked, and left blocked</span><h4>Sentiment GARCH-LSTM</h4>
+<p style="font-size:.94rem">The paper's sentiment feed is proprietary. The series is a <b>required argument</b> — the library will not invent one. On a public proxy, γ → 0 and the likelihood-ratio test gives p = 1.000: the augmentation correctly reports itself <em>inert</em> rather than manufacturing an effect.</p></div>
+
+<div class="card" style="border-left:4px solid var(--teal)"><span class="pill p-teal">Protocol matters</span><h4>The GINN reversal</h4>
+<p style="font-size:.94rem">Under a speed shortcut (<code>refit_garch_every=10</code>) λ = 1 was the worst model; under the paper's exact protocol (<code>=1</code>) it was the best. The conclusion <em>flipped</em> on a parameter that looks like an implementation detail. This is why every shortcut in the library declares itself in the returned object.</p></div>
+</div>
+
+<div class="cta" style="margin-top:1.4rem">
+  <a class="btn btn-s" href="https://github.com/merwanroudane/garchai/blob/main/docs/05_REPRODUCTION_LOG.md">Read the full reproduction log</a>
+</div>
+</section>
+
+<section id="cite">
+<h2>12 · Citation</h2>
+<p>If <code>garchai</code> contributes to published work, please cite it — and <b>also cite the original paper of any model you use</b>. Each is listed in <code>model.provenance</code> and in the coverage matrix.</p>
+<pre><code>@software{roudane2026garchai,
+  author  = {Roudane, Merwan},
+  title   = {garchai: Econometrically Constrained, Differentiable,
+             AI-Enhanced Conditional Heteroskedasticity Models},
+  year    = {2026},
+  url     = {https://github.com/merwanroudane/garchai},
+  license = {MIT}
+}</code></pre>
+</section>
+
+</main>
+</div>
+
+<footer><div class="foot-in">
+  <div class="foot-grid">
+    <div>
+      <h5>Package</h5>
+      <a href="https://pypi.org/project/garchai/">PyPI — garchai</a>
+      <a href="https://github.com/merwanroudane/garchai">GitHub repository</a>
+      <a href="https://github.com/merwanroudane/garchai#readme">Full user guide</a>
+      <a href="https://github.com/merwanroudane/garchai/tree/main/examples">Runnable examples</a>
+    </div>
+    <div>
+      <h5>Documentation</h5>
+      <a href="https://github.com/merwanroudane/garchai/blob/main/docs/01_COVERAGE_MATRIX.md">Paper coverage matrix</a>
+      <a href="https://github.com/merwanroudane/garchai/blob/main/docs/02_ARCHITECTURE.md">Architecture</a>
+      <a href="https://github.com/merwanroudane/garchai/blob/main/docs/05_REPRODUCTION_LOG.md">Reproduction log</a>
+      <a href="https://github.com/merwanroudane/garchai/blob/main/docs/00_INVENTORY.md">Inventory &amp; licence audit</a>
+    </div>
+    <div>
+      <h5>Related</h5>
+      <a href="https://github.com/bashtage/arch">arch — Python</a>
+      <a href="https://cran.r-project.org/package=tsgarch">tsgarch — R</a>
+      <a href="https://github.com/merwanroudane/garchai/issues">Report an issue</a>
+    </div>
+    <div>
+      <h5>Author</h5>
+      <a href="https://github.com/merwanroudane">Dr Merwan Roudane</a>
+      <a href="https://github.com/merwanroudane?tab=repositories">Other packages</a>
+      <a href="mailto:merwanroudane920@gmail.com">Contact</a>
+    </div>
+  </div>
+  <div class="foot-b">
+    <span>Designed and developed by <strong>Dr Merwan Roudane</strong> · MIT licensed</span>
+    <span>Every figure computed from real market data · v0.1.0</span>
+  </div>
+</div></footer>
+
+</body>
+</html>
