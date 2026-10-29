@@ -152,7 +152,8 @@ def to_tensor(x, dtype: torch.dtype = torch.float64) -> Tensor:
         out = x.to(dtype)
     else:
         values = getattr(x, "values", x)
-        out = torch.as_tensor(np.asarray(values, dtype=np.float64), dtype=dtype)
+        # np.array copies: pandas >= 3 hands out read-only views, which torch must not alias
+        out = torch.as_tensor(np.array(values, dtype=np.float64), dtype=dtype)
     out = out.squeeze()
     if out.ndim != 1:
         raise ValueError(f"Expected a 1-D series, got shape {tuple(out.shape)}.")

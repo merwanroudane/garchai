@@ -193,6 +193,39 @@ def test_zhao_models_refuse_an_analytic_forecast(returns):
         model.forecast(horizon=3, method="analytic")
 
 
+@pytest.mark.parametrize("factory", [
+    lambda cfg: GARCHNN(kernel="garch", config=cfg),
+    lambda cfg: GARCHNN(kernel="figarch", config=cfg),
+    lambda cfg: StructuralGARCHLSTM(kernel="gjr", hidden_size=3, config=cfg),
+])
+def test_zhao_forecast_one_step_is_exact_and_paths_are_valid(returns, factory):
+    """forecast() used to call cell.initial_state, which a kernel does not have."""
+    model = factory(ModelConfig(mean="zero", scale=None))
+    model.fit(returns.numpy(), TrainConfig(max_epochs=5, patience=3))
+    one = model.forecast(horizon=1)
+    with torch.no_grad():
+        exact = float(model._one_step_variance(model._fitted_returns))
+    assert one.variance[0] == pytest.approx(exact, rel=1e-10)
+
+    path = model.forecast(horizon=6, n_simulations=500, seed=0)
+    assert path.method == "simulation"
+    assert path.variance[0] == pytest.approx(exact, rel=1e-10)
+    assert np.all(np.isfinite(path.variance)) and np.all(path.variance > 0)
+    assert path.simulations.shape == (500, 6)
+
+
+def test_garch_nn_simulated_forecast_matches_the_closed_form(returns):
+    """For a GARCH(1,1) kernel the Monte Carlo mean must reproduce the analytic decay."""
+    model = GARCHNN(kernel="garch", config=ModelConfig(mean="zero", scale=None))
+    model.fit(returns.numpy(), TrainConfig(max_epochs=20, patience=5))
+    fc = model.forecast(horizon=8, n_simulations=40_000, seed=1)
+    p = {k: float(v) for k, v in model.kernel.transformed_parameters().items()}
+    persistence = p["alpha"] + p["beta"]
+    long_run = p["omega"] / (1.0 - persistence)
+    closed = long_run + persistence ** np.arange(8) * (fc.variance[0] - long_run)
+    np.testing.assert_allclose(fc.variance, closed, rtol=0.02)
+
+
 def test_zhao_rejects_unsupported_distributions():
     model = GARCHNN(config=ModelConfig(distribution="skew-t"))
     with pytest.raises(ValueError, match="supports"):

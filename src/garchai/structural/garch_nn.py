@@ -115,6 +115,69 @@ class _ZhaoBase(VolatilityModel):
     def _initial_variance(self, eps: Tensor) -> Tensor:
         return eps.var(unbiased=True).clamp(min=self.config.numerical.variance_floor)
 
+    # -- the recursion, shared by filter() and forecast() ------------------- #
+    def _initial_memory(self, dtype: torch.dtype):
+        """Recurrent memory beyond :math:`h_{t-1}`. The bare kernel has none."""
+        return None
+
+    def _step(self, eps_window: Tensor, h_prev: Tensor, memory):
+        r"""One step :math:`h_{t-1} \to h_t`.
+
+        ``eps_window`` holds the innovations up to :math:`\epsilon_{t-1}`, most
+        recent last, and may carry leading batch dimensions (one per simulated
+        path); ``h_prev`` and ``memory`` carry the same batch dimensions.
+        """
+        return self._kernel(eps_window, h_prev), memory
+
+    def _recurse(self, eps: Tensor) -> tuple[Tensor, object]:
+        """Filter the sample; return the variance path and the terminal memory."""
+        lookback = self._kernel.lookback
+        memory = self._initial_memory(eps.dtype)
+        h = [self._initial_variance(eps)]
+        for t in range(1, eps.numel()):
+            h_t, memory = self._step(eps[max(0, t - lookback) : t], h[-1], memory)
+            h.append(h_t)
+        return torch.stack(h), memory
+
+    def filter(self, r: Tensor) -> tuple[Tensor, Tensor, Tensor]:
+        eps, mu = self.mean_model.residuals(r)
+        h, _ = self._recurse(eps)
+        return h, eps, mu
+
+    def _forecast_by_recursion(self, r, horizon, method, n_simulations, seed):
+        r"""Exact one-step forecast, then Monte Carlo through the same recursion.
+
+        :math:`h_{T+1}` is deterministic given the sample. Beyond it each path
+        draws :math:`z\sim` the fitted innovation law, sets
+        :math:`\epsilon = z\sqrt{h}`, slides it into the kernel's window and
+        steps the recursion, all paths at once.
+        """
+        eps, _ = self.mean_model.residuals(r)
+        h, memory = self._recurse(eps)
+        window = eps[-self._kernel.lookback :]
+        h_next, memory = self._step(window, h[-1], memory)
+        if horizon == 1:
+            return h_next.reshape(1), None, method
+
+        generator = torch.Generator(device=h_next.device)
+        generator.manual_seed(seed if seed is not None else torch.seed() % (2**31))
+        u = torch.rand(n_simulations, horizon - 1, generator=generator, dtype=h_next.dtype)
+        z = self.distribution().ppf(u.clamp(1e-9, 1 - 1e-9)).to(h_next.dtype)
+
+        window = window.expand(n_simulations, -1).clone()
+        current = h_next.expand(n_simulations).clone()
+        if memory is not None:
+            memory = memory.expand(n_simulations, *memory.shape).clone()
+        paths = torch.empty(n_simulations, horizon, dtype=h_next.dtype)
+        for k in range(horizon):
+            paths[:, k] = current
+            if k == horizon - 1:
+                break
+            shock = z[:, k] * torch.sqrt(current)
+            window = torch.cat([window[:, 1:], shock[:, None]], dim=1)
+            current, memory = self._step(window, current, memory)
+        return paths.mean(dim=0), paths, method
+
 
 class GARCHNN(_ZhaoBase):
     r"""The neural-network counterpart of a GARCH-family model.
@@ -172,17 +235,6 @@ class GARCHNN(_ZhaoBase):
     ):
         super().__init__(kernel, config, kernel_kwargs)
         self._fixed_df = df
-
-    def filter(self, r: Tensor) -> tuple[Tensor, Tensor, Tensor]:
-        eps, mu = self.mean_model.residuals(r)
-        n = eps.numel()
-        lookback = self._kernel.lookback
-
-        h = [self._initial_variance(eps)]
-        for t in range(1, n):
-            start = max(0, t - lookback)
-            h.append(self._kernel(eps[start:t], h[-1]))
-        return torch.stack(h), eps, mu
 
 
 class StructuralGARCHLSTM(_ZhaoBase):
@@ -275,29 +327,20 @@ class StructuralGARCHLSTM(_ZhaoBase):
 
         return bounded(self.raw_w, -1.0, 1.0)
 
-    def filter(self, r: Tensor) -> tuple[Tensor, Tensor, Tensor]:
-        eps, mu = self.mean_model.residuals(r)
-        n = eps.numel()
-        lookback = self._kernel.lookback
-        w = self.coupling
-        dtype = eps.dtype
+    def _initial_memory(self, dtype: torch.dtype) -> Tensor:
+        return torch.zeros(self.hidden_size, dtype=dtype)   # c_0 = 0
 
-        h_prev = self._initial_variance(eps)
-        c = torch.zeros(self.hidden_size, dtype=dtype)
-        variances = [h_prev]
+    def _step(self, eps_window: Tensor, h_prev: Tensor, c: Tensor):
+        # trailing unit axis so batched paths broadcast against the gate weights
+        eps_prev = eps_window[..., -1:]
+        h_in = h_prev[..., None]
+        f = torch.sigmoid(self.W_f * eps_prev + self.U_f * h_in + self.b_f)
+        i = torch.sigmoid(self.W_i * eps_prev + self.U_i * h_in + self.b_i)
+        c_tilde = torch.tanh(self.W_c * eps_prev + self.U_c * h_in + self.b_c)
+        c = f * c + i * c_tilde
 
-        for t in range(1, n):
-            eps_prev = eps[t - 1]
-            f = torch.sigmoid(self.W_f * eps_prev + self.U_f * h_prev + self.b_f)
-            i = torch.sigmoid(self.W_i * eps_prev + self.U_i * h_prev + self.b_i)
-            c_tilde = torch.tanh(self.W_c * eps_prev + self.U_c * h_prev + self.b_c)
-            c = f * c + i * c_tilde
+        o = self._kernel(eps_window, h_prev)                # the GARCH output gate
 
-            start = max(0, t - lookback)
-            o = self._kernel(eps[start:t], h_prev)          # the GARCH output gate
-
-            modulation = 1.0 + w * torch.tanh(c).mean()
-            h_prev = (o * modulation).clamp(min=self.config.numerical.variance_floor)
-            variances.append(h_prev)
-
-        return torch.stack(variances), eps, mu
+        modulation = 1.0 + self.coupling * torch.tanh(c).mean(dim=-1)
+        h = (o * modulation).clamp(min=self.config.numerical.variance_floor)
+        return h, c

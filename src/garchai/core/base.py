@@ -350,7 +350,17 @@ class VolatilityModel(nn.Module, ABC):
                 "for an analytic forecast."
             )
 
+        from ..cells.base import VarianceCell
+
         with torch.no_grad():
+            if not isinstance(self.cell, VarianceCell):
+                # Neural and structural families carry their own recursion
+                # (kernels, LSTMs, coefficient networks), not a VarianceCell.
+                variance, simulations, method = self._forecast_by_recursion(
+                    r, horizon, method, n_simulations, seed
+                )
+                return self._package_forecast(variance, simulations, horizon, method)
+
             h, eps, _ = self.filter(r)
             state = self.cell.initial_state(eps)
             for t in range(1, eps.numel()):
@@ -367,8 +377,18 @@ class VolatilityModel(nn.Module, ABC):
             else:
                 raise ValueError(f"Unknown forecast method {method!r}.")
 
+        return self._package_forecast(variance, simulations, horizon, method)
+
+    def _package_forecast(
+        self, variance: Tensor, simulations: Tensor | None, horizon: int, method: str
+    ) -> ForecastResult:
+        """Undo the data scaling and wrap a variance forecast in a ForecastResult."""
         scale = self.data_scale_
         mu = self._forecast_mean(horizon) / scale
+        try:
+            persistence = float(self.cell.persistence())
+        except (AttributeError, TypeError, NotImplementedError):
+            persistence = float("nan")
         return ForecastResult(
             variance=to_numpy(variance) / scale**2,
             volatility=to_numpy(torch.sqrt(variance)) / scale,
@@ -377,8 +397,40 @@ class VolatilityModel(nn.Module, ABC):
             method=method,
             scale=scale,
             simulations=None if simulations is None else to_numpy(simulations) / scale**2,
-            metadata={"persistence": float(self.cell.persistence())},
+            metadata={"persistence": persistence},
         )
+
+    def _one_step_variance(self, r: Tensor) -> Tensor:
+        r"""Exact :math:`h_{T+1}` for any model, read off its own ``filter``.
+
+        The conditional variance is predictable — :math:`h_{T+1}` depends on
+        information up to :math:`T` only — so filtering the sample extended by
+        one placeholder return yields it exactly, whatever the placeholder is.
+        This needs nothing from the model beyond ``filter``.
+        """
+        h, _, _ = self.filter(torch.cat([r, r.new_zeros(1)]))
+        return h[-1]
+
+    def _forecast_by_recursion(
+        self,
+        r: Tensor,
+        horizon: int,
+        method: str,
+        n_simulations: int,
+        seed: int | None,
+    ) -> tuple[Tensor, Tensor | None, str]:
+        """Forecast for models without a VarianceCell.
+
+        The one-step forecast is exact for every model. Multi-step forecasts
+        need a model-specific simulation of the recursion; families that have
+        one override this method.
+        """
+        if horizon > 1:
+            raise NotImplementedError(
+                f"{type(self).__name__} has no multi-step forecast yet; use "
+                "horizon=1, which is exact, or roll one-step forecasts forward."
+            )
+        return self._one_step_variance(r).reshape(1), None, method
 
     def _simulate_forecast(
         self,
